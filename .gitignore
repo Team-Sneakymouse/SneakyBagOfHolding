@@ -25,6 +25,5 @@ run.bat
 /.idea
 /bin/
 
-# Web server images directory (volume bind)
-/web/images/*
-!/web/images/.gitkeep
+# Workspace files
+*.code-workspace
