@@ -102,6 +102,10 @@ class ConfigManager(private val plugin: SneakyBagOfHolding) {
                 ItemDisplayDefinition(
                     name = displaySection.getString("name"),
                     lore = displaySection.getStringList("lore"),
+                    material = displaySection.getString("material") ?: displaySection.getString("type"),
+                    customModelData = displaySection.getInt("custom-model-data").takeIf {
+                        displaySection.contains("custom-model-data")
+                    },
                     autopickupOnCustomModelData = onSection?.getInt("custom-model-data"),
                     autopickupOffCustomModelData = offSection?.getInt("custom-model-data")
                 )

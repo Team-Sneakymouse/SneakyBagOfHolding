@@ -86,7 +86,8 @@ class MagicItemResolver(private val plugin: SneakyBagOfHolding) {
     fun createItem(internalName: String, amount: Int = 1): ItemStack? {
         if (!available) return null
         return try {
-            val stack = getItemByInternalName!!.invoke(null, internalName) as? ItemStack ?: return null
+            val stack = (getItemByInternalName!!.invoke(null, internalName) as? ItemStack)?.clone()
+                ?: return null
             stack.amount = amount.coerceAtLeast(1)
             stack
         } catch (e: ReflectiveOperationException) {

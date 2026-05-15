@@ -25,6 +25,10 @@ data class ItemDefinition(
 data class ItemDisplayDefinition(
     val name: String?,
     val lore: List<String>,
+    /** Fallback material when MagicSpells cannot provide the item stack. */
+    val material: String?,
+    /** Fallback custom model data when MagicSpells cannot provide the item stack. */
+    val customModelData: Int?,
     val autopickupOnCustomModelData: Int?,
     val autopickupOffCustomModelData: Int?
 )

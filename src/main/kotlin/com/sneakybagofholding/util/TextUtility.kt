@@ -17,10 +17,15 @@ object TextUtility {
      * @param message The message to convert
      * @return A Component with the formatted text
      */
-    fun convertToComponent(message: String): Component {
+    fun convertToComponent(message: String): Component = toComponent(message)
+
+    /**
+     * Parses MiniMessage tags and legacy `&` color codes into a [Component].
+     */
+    fun toComponent(message: String): Component {
         return MiniMessage.miniMessage()
-                .deserialize(replaceFormatCodes(message))
-                .decoration(TextDecoration.ITALIC, false)
+            .deserialize(replaceFormatCodes(message))
+            .decoration(TextDecoration.ITALIC, false)
     }
 
     /**

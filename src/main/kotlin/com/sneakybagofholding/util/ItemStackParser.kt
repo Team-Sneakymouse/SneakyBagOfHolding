@@ -16,11 +16,11 @@ object ItemStackParser {
         val material = Material.matchMaterial(typeName.uppercase()) ?: return null
         val stack = ItemStack(material)
         val meta = stack.itemMeta ?: return stack
-        section.getString("name")?.let { meta.setDisplayName(TextUtility.replaceFormatCodes(it)) }
+        section.getString("name")?.let { ItemMetaText.setDisplayName(meta, it) }
         if (section.isList("lore")) {
             @Suppress("UNCHECKED_CAST")
             val lore = section.getList("lore") as? List<String> ?: emptyList()
-            meta.lore = lore.map { TextUtility.replaceFormatCodes(it) }
+            ItemMetaText.setLore(meta, lore)
         }
         if (section.contains("custom-model-data")) {
             meta.setCustomModelData(section.getInt("custom-model-data"))
