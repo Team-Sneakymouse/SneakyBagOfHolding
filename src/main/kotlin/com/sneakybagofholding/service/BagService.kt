@@ -4,6 +4,7 @@ import com.sneakybagofholding.capacity.CapacityService
 import com.sneakybagofholding.registry.ItemRegistry
 import com.sneakybagofholding.registry.MagicItemResolver
 import com.sneakybagofholding.storage.PlayerDataStore
+import com.sneakybagofholding.util.PickupSounds
 import org.bukkit.Sound
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
@@ -111,7 +112,12 @@ class BagService(
         data.setStored(itemId, data.getStored(itemId) + absorbed)
         playerDataStore.markDirty(player)
         if (!suppressSound) {
-            player.playSound(player.location, Sound.ENTITY_ITEM_PICKUP, 0.3f, 2.0f)
+            player.playSound(
+                player.location,
+                Sound.ENTITY_ITEM_PICKUP,
+                0.3f,
+                PickupSounds.randomItemPickupPitch(),
+            )
         }
         return absorbed
     }
