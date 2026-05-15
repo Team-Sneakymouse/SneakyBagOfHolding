@@ -27,3 +27,4 @@ run.bat
 
 # Workspace files
 *.code-workspace
+__pycache__/
