@@ -58,17 +58,35 @@ class PlayerDataStore(private val plugin: SneakyBagOfHolding) {
     }
 
     private fun load(uuid: UUID): PlayerData {
-        val file = fileFor(uuid)
-        if (!file.exists()) return PlayerData()
+        val dashedFile = fileFor(uuid)
+        if (dashedFile.exists()) {
+            return readFile(dashedFile, uuid)
+        }
+        // Migrated files from MagicSpells may use undashed UUID filenames
+        val undashedFile = fileForUndashed(uuid)
+        if (undashedFile.exists()) {
+            val data = readFile(undashedFile, uuid)
+            markDirty(uuid)
+            return data
+        }
+        return PlayerData()
+    }
+
+    private fun readFile(file: File, uuid: UUID): PlayerData {
         return try {
             gson.fromJson(file.readText(), PlayerData::class.java) ?: PlayerData()
         } catch (e: Exception) {
-            plugin.logger.warning("Failed to load data for $uuid: ${e.message}")
+            plugin.logger.warning("Failed to load data for $uuid from ${file.name}: ${e.message}")
             PlayerData()
         }
     }
 
+    /** Standard Paper/Java UUID filename (with dashes). */
     private fun fileFor(uuid: UUID) = File(dataFolder, "$uuid.json")
+
+    /** Legacy migration output matching MagicSpells PLAYER_&lt;32hex&gt;.txt naming. */
+    private fun fileForUndashed(uuid: UUID) =
+        File(dataFolder, "${uuid.toString().replace("-", "")}.json")
 
     fun startAutoSave(intervalTicks: Long = 20L * 60 * 5) {
         Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, Runnable { saveDirty() }, intervalTicks, intervalTicks)

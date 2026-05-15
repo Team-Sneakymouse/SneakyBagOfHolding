@@ -106,7 +106,7 @@ Player overrides via `/boh capacity` replace the config default for that compone
 
    Merge `items` into `config.yml` and define `categories` to match your server.
 
-2. Migrate player variable files:
+3. Migrate player variable files:
 
    ```bash
    python tools/migrate_magicspells_variables.py \
@@ -115,9 +115,19 @@ Player overrides via `/boh capacity` replace the config default for that compone
      --output plugins/SneakyBagOfHolding/data
    ```
 
+   Output files use **dashed UUIDs** (`550e8400-e29b-41d4-a716-446655440000.json`) to match Paper player UUIDs. MagicSpells `PLAYER_<32hex>.txt` names are normalized automatically.
+
+   If you already migrated with undashed filenames, rename them in place:
+
+   ```bash
+   python tools/migrate_magicspells_variables.py \
+     --output plugins/SneakyBagOfHolding/data \
+     --fix-uuid-filenames
+   ```
+
    Legacy mapping: `item-banana` → `bank_itembanana`, `max_itembanana`, `autoloot_itembanana`.
 
-3. Remove old spells (`system-bagofholding-*`), variables block, and `autolootPickup` from spellbooks.
+4. Remove old spells (`system-bagofholding-*`), variables block, and `autolootPickup` from spellbooks.
 
 ## Build
 
@@ -129,7 +139,7 @@ Output JAR: `build/libs/SneakyBagOfHolding-1.0.0.jar`
 
 ## Data files
 
-Player data: `plugins/SneakyBagOfHolding/data/<uuid>.json`
+Player data: `plugins/SneakyBagOfHolding/data/<uuid-with-dashes>.json`
 
 ```json
 {

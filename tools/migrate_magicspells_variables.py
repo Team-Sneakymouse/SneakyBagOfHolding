@@ -19,6 +19,7 @@ import argparse
 import json
 import re
 import sys
+import uuid
 from pathlib import Path
 
 try:
@@ -30,6 +31,35 @@ except ImportError:
 
 def legacy_key(item_id: str) -> str:
     return item_id.lower().replace("-", "")
+
+
+def normalize_uuid(raw: str) -> str:
+    """
+    MagicSpells uses PLAYER_<uuid>.txt without dashes; Paper/Java use dashed UUIDs.
+    Returns canonical form: 550e8400-e29b-41d4-a716-446655440000
+    """
+    cleaned = raw.strip().lower().replace("-", "")
+    if len(cleaned) == 32:
+        return str(uuid.UUID(hex=cleaned))
+    return str(uuid.UUID(raw.strip()))
+
+
+def rename_undashed_json_files(data_dir: Path) -> int:
+    """Rename existing <32hex>.json files to dashed UUID filenames."""
+    renamed = 0
+    hex_pattern = re.compile(r"^[0-9a-f]{32}\.json$", re.IGNORECASE)
+    for path in list(data_dir.glob("*.json")):
+        if not hex_pattern.match(path.name):
+            continue
+        raw = path.stem
+        dashed = normalize_uuid(raw)
+        target = data_dir / f"{dashed}.json"
+        if target.exists() and target != path:
+            print(f"Skip {path.name}: {dashed}.json already exists", file=sys.stderr)
+            continue
+        path.rename(target)
+        renamed += 1
+    return renamed
 
 
 def load_item_ids(config_path: Path) -> list[str]:
@@ -123,7 +153,20 @@ def main() -> None:
         action="store_true",
         help="Import max_* even when equal to config default",
     )
+    parser.add_argument(
+        "--fix-uuid-filenames",
+        action="store_true",
+        help="Rename existing 32-char hex .json files to dashed UUID names (no migration)",
+    )
     args = parser.parse_args()
+
+    if args.fix_uuid_filenames:
+        if not args.output.is_dir():
+            print(f"Output directory not found: {args.output}", file=sys.stderr)
+            sys.exit(1)
+        n = rename_undashed_json_files(args.output)
+        print(f"Renamed {n} file(s) in {args.output}")
+        return
 
     if not args.config.exists():
         print(f"Config not found: {args.config}", file=sys.stderr)
@@ -138,10 +181,11 @@ def main() -> None:
         m = pattern.match(path.name)
         if not m:
             continue
-        uuid = m.group(1)
+        uuid_raw = m.group(1)
+        uuid_dashed = normalize_uuid(uuid_raw)
         ms_values = parse_player_file(path)
         data = migrate_file(ms_values, item_ids, args.import_all_max, args.config)
-        out_path = args.output / f"{uuid}.json"
+        out_path = args.output / f"{uuid_dashed}.json"
         out_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
         count += 1
 
