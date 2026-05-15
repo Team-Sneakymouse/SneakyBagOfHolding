@@ -10,7 +10,7 @@ import java.util.UUID
 /**
  * Computes stacked storage capacity: per-item base plus each category's bonus.
  *
- * `effectiveMax(item) = itemCapacity + sum(categoryCapacity(c) for c in item.categories)`
+ * `effectiveMax(item) = itemCapacity + sum(categoryCapacity(c) for c in item.categories) + globalCapacity`
  */
 class CapacityService(
     private val configManager: ConfigManager,
@@ -37,11 +37,19 @@ class CapacityService(
     }
 
     /**
+     * Global per-player capacity bonus: config default or player override.
+     */
+    fun getGlobalCapacity(playerId: UUID): Int {
+        val data = playerDataStore.get(playerId)
+        return data.globalCapacity ?: configManager.getSettings().defaultGlobalCapacity
+    }
+
+    /**
      * Stacked maximum storage for an item.
      */
     fun effectiveMax(playerId: UUID, itemId: String): Int {
         val item = itemRegistry.getItem(itemId) ?: return 0
-        var total = getItemCapacity(playerId, item)
+        var total = getItemCapacity(playerId, item) + getGlobalCapacity(playerId)
         for (categoryId in item.categories) {
             total += getCategoryCapacity(playerId, categoryId)
         }

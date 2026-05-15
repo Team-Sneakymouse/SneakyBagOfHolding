@@ -146,6 +146,7 @@ def migrate_file(
         "autopickup": autopickup,
         "itemCapacity": item_capacity,
         "categoryCapacity": {},
+        "globalCapacity": None,
     }
     return result
 

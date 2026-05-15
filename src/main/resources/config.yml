@@ -4,6 +4,7 @@ settings:
   defaults:
     item-capacity: 1000       # per-item base when items omit default-capacity
     category-capacity: 0      # category bonus when categories omit default-capacity
+    global-capacity: 0        # per-player bonus applied to every item (when not overridden)
   menu:
     main-title: "<gold>Bag of Holding"
     category-rows: 6

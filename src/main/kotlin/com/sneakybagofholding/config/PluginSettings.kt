@@ -5,6 +5,7 @@ package com.sneakybagofholding.config
  *
  * @property defaultItemCapacity Global per-item base capacity when an item omits `default-capacity`.
  * @property defaultCategoryCapacity Global category bonus when a category omits `default-capacity`.
+ * @property defaultGlobalCapacity Per-player global bonus when the player has no override.
  */
 data class PluginSettings(
     val mainMenuTitle: String,
@@ -13,10 +14,12 @@ data class PluginSettings(
     val suppressAutopickupSound: Boolean,
     val defaultItemLore: List<String>,
     val defaultItemCapacity: Int = DEFAULT_ITEM_CAPACITY,
-    val defaultCategoryCapacity: Int = DEFAULT_CATEGORY_CAPACITY
+    val defaultCategoryCapacity: Int = DEFAULT_CATEGORY_CAPACITY,
+    val defaultGlobalCapacity: Int = DEFAULT_GLOBAL_CAPACITY,
 ) {
     companion object {
         const val DEFAULT_ITEM_CAPACITY = 1000
         const val DEFAULT_CATEGORY_CAPACITY = 0
+        const val DEFAULT_GLOBAL_CAPACITY = 0
     }
 }

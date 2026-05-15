@@ -84,6 +84,11 @@ class BagService(
         playerDataStore.markDirty(uuid)
     }
 
+    fun setGlobalCapacityOverride(uuid: UUID, value: Int) {
+        playerDataStore.get(uuid).globalCapacity = value
+        playerDataStore.markDirty(uuid)
+    }
+
     /**
      * Deposits from a specific inventory stack (e.g. menu drag-drop).
      */

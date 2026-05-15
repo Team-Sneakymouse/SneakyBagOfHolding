@@ -8,7 +8,7 @@ Paper plugin that replaces the MagicSpells-based Bag of Holding with config-driv
 
 - Store MagicSpells items virtually per player (UUID JSON files)
 - **Categories** with optional hub icons (categories without `menu-icon` still affect capacity)
-- **Stacked capacity**: `effectiveMax = itemCapacity + sum(categoryCapacity for each category)`
+- **Stacked capacity**: `effectiveMax = itemCapacity + sum(categoryCapacity for each category) + globalCapacity`
 - Category browser: deposit, withdraw, toggle autopickup (F / swap offhand)
 - Hub menu: open categories, drag-drop or shift-click deposit
 - Admin commands for capacity overrides and stored amounts
@@ -21,7 +21,8 @@ Paper plugin that replaces the MagicSpells-based Bag of Holding with config-driv
 | `/boh` | `sneakybagofholding.use` | Open main menu |
 | `/bag`, `/bagofholding` | `sneakybagofholding.use` | Aliases of `/boh` |
 | `/boh reload` | `sneakybagofholding.reload` | Reload config |
-| `/boh capacity <player> item\|category <id> <value>` | `sneakybagofholding.admin.capacity` | Set player capacity override |
+| `/boh capacity <player> global <value>` | `sneakybagofholding.admin.capacity` | Set player global capacity bonus |
+| `/boh capacity <player> item\|category <id> <value>` | `sneakybagofholding.admin.capacity` | Set player item or category capacity override |
 | `/boh give <player> <itemId> <amount>` | `sneakybagofholding.admin` | Add to stored count (clamped to max) |
 | `/boh take <player> <itemId> <amount>` | `sneakybagofholding.admin` | Remove from stored count |
 
@@ -45,6 +46,7 @@ settings:
   defaults:
     item-capacity: 1000        # per-item base when an item omits default-capacity
     category-capacity: 0       # category bonus when a category omits default-capacity
+    global-capacity: 0         # per-player bonus on every item when not overridden
 ```
 
 ### Categories
@@ -79,9 +81,10 @@ items:
 | Item `fish-catfish1` | 0 |
 | Category `fish` | 100 |
 | Category `crafting_reagent` | 200 |
-| **Effective max** | **300** |
+| Global (player) | 50 |
+| **Effective max** | **350** |
 
-Player overrides via `/boh capacity` replace the config default for that component.
+Player overrides via `/boh capacity` replace the config default for that component (global uses `settings.defaults.global-capacity` when unset).
 
 ## Migration from MagicSpells
 
@@ -146,6 +149,7 @@ Player data: `plugins/SneakyBagOfHolding/data/<uuid-with-dashes>.json`
   "stored": { "item-banana": 42 },
   "autopickup": { "item-banana": true },
   "itemCapacity": {},
-  "categoryCapacity": {}
+  "categoryCapacity": {},
+  "globalCapacity": null
 }
 ```

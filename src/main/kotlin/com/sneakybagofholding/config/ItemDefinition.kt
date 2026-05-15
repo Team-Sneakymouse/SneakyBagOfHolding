@@ -4,7 +4,7 @@ package com.sneakybagofholding.config
  * A MagicSpells item that can be stored in the bag of holding.
  *
  * @property id Canonical MagicSpells internal name (e.g. `fish-catfish1`).
- * @property categories Category ids this item belongs to; each adds its capacity bonus.
+ * @property categories Category ids this item belongs to; each adds its capacity bonus (plus global).
  * @property defaultCapacity Per-item base capacity (stacked with category bonuses).
  *   Falls back to [PluginSettings.defaultItemCapacity] when omitted in config.
  * @property display Optional display overrides for the category browser.

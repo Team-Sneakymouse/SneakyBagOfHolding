@@ -64,7 +64,7 @@ class BohCommand(
                 Bukkit.getOnlinePlayers().map { it.name }
                     .filter { it.lowercase().startsWith(args[1].lowercase()) }
             args.size == 3 && args[0].lowercase() == "capacity" ->
-                listOf("item", "category").filter { it.startsWith(args[2].lowercase()) }
+                listOf("item", "category", "global").filter { it.startsWith(args[2].lowercase()) }
             args.size == 4 && args[0].lowercase() == "capacity" ->
                 when (args[2].lowercase()) {
                     "item" -> configManager.getItems().keys
@@ -84,8 +84,9 @@ class BohCommand(
             sender.sendMessage("You do not have permission.")
             return
         }
-        if (args.size < 5) {
-            sender.sendMessage("Usage: /boh capacity <player> item|category <id> <value>")
+        if (args.size < 4) {
+            sender.sendMessage("Usage: /boh capacity <player> global <value>")
+            sender.sendMessage("       /boh capacity <player> item|category <id> <value>")
             return
         }
         val target = Bukkit.getPlayer(args[1])
@@ -94,33 +95,52 @@ class BohCommand(
             return
         }
         val type = args[2].lowercase()
-        val id = args[3]
-        val value = args[4].toIntOrNull()
-        if (value == null) {
-            sender.sendMessage("Value must be an integer.")
-            return
-        }
         when (type) {
-            "item" -> {
-                if (configManager.getItems()[id] == null) {
-                    sender.sendMessage("Unknown item: $id")
+            "global" -> {
+                if (args.size < 4) {
+                    sender.sendMessage("Usage: /boh capacity <player> global <value>")
                     return
                 }
-                bagService.setItemCapacityOverride(target.uniqueId, id, value)
+                val value = args[3].toIntOrNull() ?: run {
+                    sender.sendMessage("Value must be an integer.")
+                    return
+                }
+                bagService.setGlobalCapacityOverride(target.uniqueId, value)
+                sender.sendMessage("Set global capacity for ${target.name}: $value")
             }
-            "category" -> {
-                if (configManager.getCategories()[id] == null) {
-                    sender.sendMessage("Unknown category: $id")
+            "item", "category" -> {
+                if (args.size < 5) {
+                    sender.sendMessage("Usage: /boh capacity <player> $type <id> <value>")
                     return
                 }
-                bagService.setCategoryCapacityOverride(target.uniqueId, id, value)
+                val id = args[3]
+                val value = args[4].toIntOrNull() ?: run {
+                    sender.sendMessage("Value must be an integer.")
+                    return
+                }
+                when (type) {
+                    "item" -> {
+                        if (configManager.getItems()[id] == null) {
+                            sender.sendMessage("Unknown item: $id")
+                            return
+                        }
+                        bagService.setItemCapacityOverride(target.uniqueId, id, value)
+                    }
+                    "category" -> {
+                        if (configManager.getCategories()[id] == null) {
+                            sender.sendMessage("Unknown category: $id")
+                            return
+                        }
+                        bagService.setCategoryCapacityOverride(target.uniqueId, id, value)
+                    }
+                }
+                sender.sendMessage("Set $type capacity for ${target.name}: $id = $value")
             }
             else -> {
-                sender.sendMessage("Type must be item or category.")
+                sender.sendMessage("Type must be item, category, or global.")
                 return
             }
         }
-        sender.sendMessage("Set $type capacity for ${target.name}: $id = $value")
         if (target.isOnline) menuService.refreshOpenMenu(target)
     }
 

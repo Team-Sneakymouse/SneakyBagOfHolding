@@ -7,12 +7,14 @@ package com.sneakybagofholding.storage
  * @property autopickup Per-item autopickup enabled flags.
  * @property itemCapacity Overrides for per-item base capacity (additive component).
  * @property categoryCapacity Overrides for per-category capacity bonuses.
+ * @property globalCapacity Player-wide capacity bonus; null uses [com.sneakybagofholding.config.PluginSettings.defaultGlobalCapacity].
  */
 data class PlayerData(
     val stored: MutableMap<String, Int> = mutableMapOf(),
     val autopickup: MutableMap<String, Boolean> = mutableMapOf(),
     val itemCapacity: MutableMap<String, Int> = mutableMapOf(),
-    val categoryCapacity: MutableMap<String, Int> = mutableMapOf()
+    val categoryCapacity: MutableMap<String, Int> = mutableMapOf(),
+    var globalCapacity: Int? = null,
 ) {
     fun getStored(itemId: String): Int = stored[itemId] ?: 0
 

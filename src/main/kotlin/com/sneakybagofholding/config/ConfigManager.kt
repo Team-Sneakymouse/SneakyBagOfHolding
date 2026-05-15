@@ -61,6 +61,10 @@ class ConfigManager(private val plugin: SneakyBagOfHolding) {
                 "category-capacity",
                 PluginSettings.DEFAULT_CATEGORY_CAPACITY
             ) ?: PluginSettings.DEFAULT_CATEGORY_CAPACITY,
+            defaultGlobalCapacity = defaults?.getInt(
+                "global-capacity",
+                PluginSettings.DEFAULT_GLOBAL_CAPACITY
+            ) ?: PluginSettings.DEFAULT_GLOBAL_CAPACITY,
             defaultItemLore = lore.ifEmpty {
                 listOf(
                     "<yellow>Stored: <aqua>{stored}<yellow>/<aqua>{max}",
@@ -145,7 +149,8 @@ class ConfigManager(private val plugin: SneakyBagOfHolding) {
             suppressAutopickupSound = true,
             defaultItemLore = emptyList(),
             defaultItemCapacity = PluginSettings.DEFAULT_ITEM_CAPACITY,
-            defaultCategoryCapacity = PluginSettings.DEFAULT_CATEGORY_CAPACITY
+            defaultCategoryCapacity = PluginSettings.DEFAULT_CATEGORY_CAPACITY,
+            defaultGlobalCapacity = PluginSettings.DEFAULT_GLOBAL_CAPACITY,
         )
     }
 }
