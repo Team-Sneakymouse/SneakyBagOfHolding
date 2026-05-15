@@ -40,8 +40,10 @@ class ItemDisplayBuilder(
         val stack = ItemStack(appearance?.material ?: resolveFallbackMaterial(display), 1)
         val meta = stack.itemMeta ?: return stack
 
+        val autopickupEnabled = playerDataStore.get(player).isAutopickupEnabled(item.id)
         applyDisplayName(meta, appearance, display)
-        applyCustomModelData(meta, appearance, display, playerDataStore.get(player).isAutopickupEnabled(item.id))
+        applyCustomModelData(meta, appearance, display, autopickupEnabled)
+        applyAutopickupGlow(meta, autopickupEnabled)
         applyPluginLore(meta, player, item, display)
 
         stack.itemMeta = meta
@@ -95,6 +97,17 @@ class ItemDisplayBuilder(
         if (cmd != null) {
             meta.setCustomModelData(cmd)
         }
+    }
+
+    /**
+     * Enchant glint on the icon when autopickup is on (configurable via settings.menu.autopickup-enchant-glow).
+     */
+    private fun applyAutopickupGlow(meta: ItemMeta, autopickupEnabled: Boolean) {
+        if (!configManager.getSettings().autopickupEnchantGlow) {
+            meta.setEnchantmentGlintOverride(null)
+            return
+        }
+        meta.setEnchantmentGlintOverride(autopickupEnabled)
     }
 
     /** Lore comes only from plugin templates, never from the MagicSpells item. */

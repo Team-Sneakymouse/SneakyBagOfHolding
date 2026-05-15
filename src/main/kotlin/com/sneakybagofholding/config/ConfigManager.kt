@@ -53,6 +53,7 @@ class ConfigManager(private val plugin: SneakyBagOfHolding) {
             commandAliases = menu?.getStringList("commands")?.takeIf { it.isNotEmpty() }
                 ?: listOf("boh", "bag", "bagofholding"),
             suppressAutopickupSound = autopickup?.getBoolean("suppress-vanilla-pickup-sound") ?: false,
+            autopickupEnchantGlow = menu?.getBoolean("autopickup-enchant-glow") ?: true,
             defaultItemCapacity = defaults?.getInt(
                 "item-capacity",
                 PluginSettings.DEFAULT_ITEM_CAPACITY
@@ -151,6 +152,7 @@ class ConfigManager(private val plugin: SneakyBagOfHolding) {
             defaultItemCapacity = PluginSettings.DEFAULT_ITEM_CAPACITY,
             defaultCategoryCapacity = PluginSettings.DEFAULT_CATEGORY_CAPACITY,
             defaultGlobalCapacity = PluginSettings.DEFAULT_GLOBAL_CAPACITY,
+            autopickupEnchantGlow = true,
         )
     }
 }

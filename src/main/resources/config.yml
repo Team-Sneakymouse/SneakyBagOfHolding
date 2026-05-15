@@ -12,6 +12,7 @@ settings:
       - boh
       - bag
       - bagofholding
+    autopickup-enchant-glow: true   # glint on category icons when autopickup is on
     default-item-lore:
       - "<yellow>Stored: <aqua>{stored}<yellow>/<aqua>{max}"
       - "<yellow>L-Click:<gray> Withdraw Item"

@@ -9,7 +9,7 @@ Paper plugin that replaces the MagicSpells-based Bag of Holding with config-driv
 - Store MagicSpells items virtually per player (UUID JSON files)
 - **Categories** with optional hub icons (categories without `menu-icon` still affect capacity)
 - **Stacked capacity**: `effectiveMax = itemCapacity + sum(categoryCapacity for each category) + globalCapacity`
-- Category browser: deposit, withdraw, toggle autopickup (F / swap offhand)
+- Category browser: deposit, withdraw, toggle autopickup (F / swap offhand); optional enchant glint when autopickup is on
 - Hub menu: open categories, drag-drop or shift-click deposit
 - Admin commands for capacity overrides and stored amounts
 - Config reload without restart
@@ -59,6 +59,16 @@ categories:
     menu-icon:                 # omit = not browsable from hub
       material: COD
 ```
+
+### Menu display
+
+```yaml
+settings:
+  menu:
+    autopickup-enchant-glow: true   # glint on icon when autopickup is on; no glint when off
+```
+
+Per-item `display.autopickup-off.custom-model-data` still overrides the model while off (optional).
 
 ### Items
 

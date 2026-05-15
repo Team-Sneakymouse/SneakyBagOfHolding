@@ -16,6 +16,8 @@ data class PluginSettings(
     val defaultItemCapacity: Int = DEFAULT_ITEM_CAPACITY,
     val defaultCategoryCapacity: Int = DEFAULT_CATEGORY_CAPACITY,
     val defaultGlobalCapacity: Int = DEFAULT_GLOBAL_CAPACITY,
+    /** When true, category icons use enchant glint while autopickup is on. */
+    val autopickupEnchantGlow: Boolean = true,
 ) {
     companion object {
         const val DEFAULT_ITEM_CAPACITY = 1000
