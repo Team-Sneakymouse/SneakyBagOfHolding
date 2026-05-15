@@ -6,6 +6,7 @@ package com.sneakybagofholding.config
  * @property id Canonical MagicSpells internal name (e.g. `fish-catfish1`).
  * @property categories Category ids this item belongs to; each adds its capacity bonus.
  * @property defaultCapacity Per-item base capacity (stacked with category bonuses).
+ *   Falls back to [PluginSettings.defaultItemCapacity] when omitted in config.
  * @property display Optional display overrides for the category browser.
  * @property legacyKey Lowercase id without dashes, used for MagicSpells variable migration.
  */

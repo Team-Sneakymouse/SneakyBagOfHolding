@@ -45,6 +45,7 @@ class ConfigManager(private val plugin: SneakyBagOfHolding) {
     private fun loadSettings(config: FileConfiguration): PluginSettings {
         val menu = config.getConfigurationSection("settings.menu")
         val autopickup = config.getConfigurationSection("settings.autopickup")
+        val defaults = config.getConfigurationSection("settings.defaults")
         val lore = config.getStringList("settings.menu.default-item-lore")
         return PluginSettings(
             mainMenuTitle = menu?.getString("main-title") ?: "<gold>Bag of Holding",
@@ -52,6 +53,14 @@ class ConfigManager(private val plugin: SneakyBagOfHolding) {
             commandAliases = menu?.getStringList("commands")?.takeIf { it.isNotEmpty() }
                 ?: listOf("boh", "bag", "bagofholding"),
             suppressAutopickupSound = autopickup?.getBoolean("suppress-vanilla-pickup-sound") ?: true,
+            defaultItemCapacity = defaults?.getInt(
+                "item-capacity",
+                PluginSettings.DEFAULT_ITEM_CAPACITY
+            ) ?: PluginSettings.DEFAULT_ITEM_CAPACITY,
+            defaultCategoryCapacity = defaults?.getInt(
+                "category-capacity",
+                PluginSettings.DEFAULT_CATEGORY_CAPACITY
+            ) ?: PluginSettings.DEFAULT_CATEGORY_CAPACITY,
             defaultItemLore = lore.ifEmpty {
                 listOf(
                     "<yellow>Stored: <aqua>{stored}<yellow>/<aqua>{max}",
@@ -67,13 +76,14 @@ class ConfigManager(private val plugin: SneakyBagOfHolding) {
     }
 
     private fun loadCategories(config: FileConfiguration): Map<String, CategoryDefinition> {
+        val globalCategoryDefault = settings.defaultCategoryCapacity
         val section = config.getConfigurationSection("categories") ?: return emptyMap()
         return section.getKeys(false).associateWith { id ->
             val cat = section.getConfigurationSection(id)!!
             val title = cat.getString("menu-title") ?: "<gold>${id.replace('_', ' ').replaceFirstChar { it.uppercase() }}"
             CategoryDefinition(
                 id = id,
-                defaultCapacity = cat.getInt("default-capacity", 0),
+                defaultCapacity = resolveCapacity(cat, "default-capacity", globalCategoryDefault),
                 menuIcon = ItemStackParser.parse(cat.getConfigurationSection("menu-icon")),
                 menuTitle = title
             )
@@ -81,6 +91,7 @@ class ConfigManager(private val plugin: SneakyBagOfHolding) {
     }
 
     private fun loadItems(config: FileConfiguration): Map<String, ItemDefinition> {
+        val globalItemDefault = settings.defaultItemCapacity
         val section = config.getConfigurationSection("items") ?: return emptyMap()
         return section.getKeys(false).associateWith { id ->
             val item = section.getConfigurationSection(id)!!
@@ -98,10 +109,18 @@ class ConfigManager(private val plugin: SneakyBagOfHolding) {
             ItemDefinition(
                 id = id,
                 categories = item.getStringList("categories"),
-                defaultCapacity = item.getInt("default-capacity", 0),
+                defaultCapacity = resolveCapacity(item, "default-capacity", globalItemDefault),
                 display = display
             )
         }
+    }
+
+    /**
+     * Uses [globalDefault] when the section does not define [key]; otherwise uses the configured value.
+     */
+    private fun resolveCapacity(section: org.bukkit.configuration.ConfigurationSection, key: String, globalDefault: Int): Int {
+        if (!section.contains(key)) return globalDefault
+        return section.getInt(key)
     }
 
     private fun validateItemCategories() {
@@ -120,7 +139,9 @@ class ConfigManager(private val plugin: SneakyBagOfHolding) {
             categoryRows = 6,
             commandAliases = listOf("boh", "bag", "bagofholding"),
             suppressAutopickupSound = true,
-            defaultItemLore = emptyList()
+            defaultItemLore = emptyList(),
+            defaultItemCapacity = PluginSettings.DEFAULT_ITEM_CAPACITY,
+            defaultCategoryCapacity = PluginSettings.DEFAULT_CATEGORY_CAPACITY
         )
     }
 }

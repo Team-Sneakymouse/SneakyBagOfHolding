@@ -50,6 +50,11 @@ def parse_player_file(path: Path) -> dict[str, str]:
     return values
 
 
+def global_item_capacity(config: dict) -> int:
+    defaults = (config.get("settings") or {}).get("defaults") or {}
+    return int(defaults.get("item-capacity", 1000))
+
+
 def migrate_file(
     ms_values: dict[str, str],
     item_ids: list[str],
@@ -59,7 +64,7 @@ def migrate_file(
     with config_path.open(encoding="utf-8") as f:
         config = yaml.safe_load(f) or {}
     item_defs = (config.get("items") or {})
-    categories = (config.get("categories") or {})
+    global_default = global_item_capacity(config)
 
     stored: dict[str, int] = {}
     autopickup: dict[str, bool] = {}
@@ -89,7 +94,11 @@ def migrate_file(
         if max_key in ms_values:
             try:
                 max_val = int(float(ms_values[max_key]))
-                default = int(item_defs.get(item_id, {}).get("default-capacity", 0))
+                item_cfg = item_defs.get(item_id) or {}
+                if "default-capacity" in item_cfg:
+                    default = int(item_cfg["default-capacity"])
+                else:
+                    default = global_default
                 if import_all_max or max_val != default:
                     item_capacity[item_id] = max_val
             except ValueError:

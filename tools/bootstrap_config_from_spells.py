@@ -133,7 +133,6 @@ def main() -> None:
     for item_id in sorted(item_ids):
         items_block[item_id] = {
             "categories": infer_categories(item_id, menu_mapping, spells),
-            "default-capacity": 1000,
         }
 
     snippet = {"items": items_block}

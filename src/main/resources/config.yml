@@ -1,24 +1,9 @@
 # SneakyBagOfHolding — see README for full documentation.
 
-categories:
-  fish:
-    default-capacity: 100
-    menu-title: "<gold>Fish and Bait"
-    menu-icon:
-      material: COD
-      name: "<gold>Fish and Bait"
-      custom-model-data: 1
-  crafting_reagent:
-    default-capacity: 50
-    menu-title: "<gold>Magic Reagents"
-    menu-icon:
-      material: NETHER_WART
-      name: "<gold>Magic Reagents"
-  ore:
-    default-capacity: 0
-    # No menu-icon: contributes capacity only, not browsable from hub
-
 settings:
+  defaults:
+    item-capacity: 1000       # per-item base when items omit default-capacity
+    category-capacity: 0      # category bonus when categories omit default-capacity
   menu:
     main-title: "<gold>Bag of Holding"
     category-rows: 6
@@ -37,10 +22,28 @@ settings:
   autopickup:
     suppress-vanilla-pickup-sound: true
 
+categories:
+  fish:
+    default-capacity: 100     # overrides global category-capacity (0) for fish only
+    menu-title: "<gold>Fish and Bait"
+    menu-icon:
+      material: COD
+      name: "<gold>Fish and Bait"
+      custom-model-data: 1
+  crafting_reagent:
+    default-capacity: 50      # optional override
+    menu-title: "<gold>Magic Reagents"
+    menu-icon:
+      material: NETHER_WART
+      name: "<gold>Magic Reagents"
+  ore:
+    # omits default-capacity → uses global category-capacity (0)
+    # No menu-icon: contributes capacity only, not browsable from hub
+
 items:
   fish-catfish1:
     categories: [fish, crafting_reagent]
-    default-capacity: 1000
+    # omits default-capacity → uses global item-capacity (1000)
     display:
       autopickup-on:
         custom-model-data: 94
@@ -48,7 +51,5 @@ items:
         custom-model-data: 95
   item-banana:
     categories: [crafting_reagent]
-    default-capacity: 1000
   item-ore:
     categories: [ore, crafting_reagent]
-    default-capacity: 1000

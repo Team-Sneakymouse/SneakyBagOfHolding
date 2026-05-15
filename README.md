@@ -38,12 +38,21 @@ Paper plugin that replaces the MagicSpells-based Bag of Holding with config-driv
 
 See `config.yml` for structure.
 
+### Global defaults
+
+```yaml
+settings:
+  defaults:
+    item-capacity: 1000        # per-item base when an item omits default-capacity
+    category-capacity: 0       # category bonus when a category omits default-capacity
+```
+
 ### Categories
 
 ```yaml
 categories:
   fish:
-    default-capacity: 100      # added to every item in this category
+    default-capacity: 100      # optional; overrides global category-capacity for this category
     menu-title: "<gold>Fish"
     menu-icon:                 # omit = not browsable from hub
       material: COD
@@ -55,7 +64,7 @@ categories:
 items:
   fish-catfish1:
     categories: [fish, crafting_reagent]
-    default-capacity: 1000     # per-item base (migrated from max_*)
+    # default-capacity omitted → uses settings.defaults.item-capacity (1000)
     display:
       autopickup-on:
         custom-model-data: 94

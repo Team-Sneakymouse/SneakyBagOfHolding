@@ -7,6 +7,7 @@ import org.bukkit.inventory.ItemStack
  *
  * @property id Unique category id (e.g. `fish`, `ore`).
  * @property defaultCapacity Base capacity bonus applied to every item in this category.
+ *   Falls back to [PluginSettings.defaultCategoryCapacity] when omitted in config.
  * @property menuIcon Optional icon for the main hub; null means browse-only via other means / storage-only.
  * @property menuTitle Title for the category browser inventory.
  */
