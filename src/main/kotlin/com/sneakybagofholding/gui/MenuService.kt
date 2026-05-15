@@ -85,37 +85,22 @@ class MenuService(
 
     fun refreshOpenMenu(player: Player) {
         val holder = openMenus[player.uniqueId] ?: return
-        val top = player.openInventory.topInventory
-        when (holder) {
-            is BagInventoryHolder.MainMenu -> populateMainMenu(top, player)
-            is BagInventoryHolder.CategoryMenu -> {
-                val cat = configManager.getCategories()[holder.categoryId] ?: return
-                populateCategoryMenu(top, player, cat, holder.pageIndex)
-                player.updateInventory()
-            }
-        }
+        scheduleMenuRefresh(player, holder)
     }
 
     /**
-     * Updates a single category row after deposit, withdraw, or autopickup toggle.
+     * Rebuilds the open category menu on the next tick (same approach as prev/next navigation)
+     * so stored counts, lore, and autopickup icons sync on the client.
      */
-    private fun refreshCategoryItem(player: Player, categoryId: String, itemId: String) {
-        val holder = openMenus[player.uniqueId] as? BagInventoryHolder.CategoryMenu ?: return
-        if (holder.categoryId != categoryId) return
-        val inv = player.openInventory.topInventory
-        val items = categoryNavigation.itemsInCategory(categoryId)
-        val globalIndex = items.indexOfFirst { it.id == itemId }
-        if (globalIndex < 0) return
-        val pageStart = holder.pageIndex * CategoryMenuLayout.ITEMS_PER_PAGE
-        val slot = globalIndex - pageStart
-        if (slot !in 0..CategoryMenuLayout.LAST_ITEM_SLOT) return
-        inv.setItem(slot, buildItemDisplay(player, items[globalIndex]))
-        player.updateInventory()
-    }
-
-    private fun scheduleCategoryRefresh(player: Player, categoryId: String, itemId: String) {
+    private fun scheduleMenuRefresh(player: Player, holder: BagInventoryHolder) {
+        if (holder !is BagInventoryHolder.CategoryMenu) return
+        val categoryId = holder.categoryId
+        val pageIndex = holder.pageIndex
         Bukkit.getScheduler().runTask(plugin, Runnable {
-            refreshCategoryItem(player, categoryId, itemId)
+            if (!player.isOnline) return@Runnable
+            val topHolder = player.openInventory.topInventory.holder
+            if (topHolder !is BagInventoryHolder) return@Runnable
+            openCategoryMenu(player, categoryId, pageIndex)
         })
     }
 
@@ -197,7 +182,7 @@ class MenuService(
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     fun onInventoryClick(event: InventoryClickEvent) {
-        val holder = event.inventory.holder as? BagInventoryHolder ?: return
+        val holder = event.view.topInventory.holder as? BagInventoryHolder ?: return
         if (event.whoClicked !is Player) return
         val player = event.whoClicked as Player
         event.isCancelled = true
@@ -230,7 +215,7 @@ class MenuService(
         val stack = event.currentItem ?: return false
         val itemId = itemRegistry.resolveItemId(stack) ?: return false
         val deposited = bagService.depositFromStack(player, stack)
-        if (deposited > 0) refreshAfterDeposit(player, holder, itemId)
+        if (deposited > 0) refreshAfterDeposit(player, holder)
         return deposited > 0
     }
 
@@ -249,16 +234,12 @@ class MenuService(
         if (deposited <= 0) return false
         cursor.amount -= deposited
         event.view.setCursor(if (cursor.amount > 0) cursor else ItemStack(Material.AIR))
-        refreshAfterDeposit(player, holder, itemId)
+        refreshAfterDeposit(player, holder)
         return true
     }
 
-    private fun refreshAfterDeposit(player: Player, holder: BagInventoryHolder, itemId: String) {
-        when (holder) {
-            is BagInventoryHolder.MainMenu -> refreshOpenMenu(player)
-            is BagInventoryHolder.CategoryMenu ->
-                scheduleCategoryRefresh(player, holder.categoryId, itemId)
-        }
+    private fun refreshAfterDeposit(player: Player, holder: BagInventoryHolder) {
+        scheduleMenuRefresh(player, holder)
     }
 
     private fun handleCategoryClick(event: InventoryClickEvent, player: Player, holder: BagInventoryHolder.CategoryMenu) {
@@ -295,35 +276,34 @@ class MenuService(
         if (!CategoryMenuLayout.isItemSlot(slot)) return
 
         val itemId = itemIdAtSlot(holder.categoryId, holder.pageIndex, slot) ?: return
-        val categoryId = holder.categoryId
         val click = event.click
         when {
             click == ClickType.SWAP_OFFHAND || click == ClickType.NUMBER_KEY && event.hotbarButton == 40 -> {
                 bagService.toggleAutopickup(player, itemId)
-                scheduleCategoryRefresh(player, categoryId, itemId)
+                scheduleMenuRefresh(player, holder)
             }
             click == ClickType.LEFT -> {
                 bagService.withdraw(player, itemId, 1)
-                scheduleCategoryRefresh(player, categoryId, itemId)
+                scheduleMenuRefresh(player, holder)
             }
             click == ClickType.SHIFT_LEFT -> {
                 bagService.withdraw(player, itemId, 99)
-                scheduleCategoryRefresh(player, categoryId, itemId)
+                scheduleMenuRefresh(player, holder)
             }
             click == ClickType.RIGHT -> {
                 bagService.deposit(player, itemId, 1)
-                scheduleCategoryRefresh(player, categoryId, itemId)
+                scheduleMenuRefresh(player, holder)
             }
             click == ClickType.SHIFT_RIGHT -> {
                 bagService.deposit(player, itemId, 99)
-                scheduleCategoryRefresh(player, categoryId, itemId)
+                scheduleMenuRefresh(player, holder)
             }
         }
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     fun onInventoryDrag(event: InventoryDragEvent) {
-        val holder = event.inventory.holder as? BagInventoryHolder ?: return
+        val holder = event.view.topInventory.holder as? BagInventoryHolder ?: return
         if (event.whoClicked !is Player) return
         val player = event.whoClicked as Player
 
@@ -345,15 +325,19 @@ class MenuService(
         if (deposited > 0) {
             cursor.amount -= deposited
             event.view.setCursor(if (cursor.amount > 0) cursor else ItemStack(Material.AIR))
-            refreshAfterDeposit(player, holder, itemId)
+            refreshAfterDeposit(player, holder)
         }
     }
 
     @EventHandler
     fun onInventoryClose(event: InventoryCloseEvent) {
         val player = event.player as? Player ?: return
-        if (event.inventory.holder is BagInventoryHolder) {
-            openMenus.remove(player.uniqueId)
-        }
+        if (event.inventory.holder !is BagInventoryHolder) return
+        // Defer: replacing one BOH screen with another also closes the old inventory first.
+        Bukkit.getScheduler().runTask(plugin, Runnable {
+            if (player.openInventory.topInventory.holder !is BagInventoryHolder) {
+                openMenus.remove(player.uniqueId)
+            }
+        })
     }
 }
