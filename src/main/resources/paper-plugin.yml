@@ -1,7 +1,28 @@
 name: SneakyBagOfHolding
 version: '${version}'
 main: com.sneakybagofholding.SneakyBagOfHolding
-description: A Minecraft Paper plugin designed to create notes for skin previews.
+description: Virtual bag of holding storage with categories, stacked capacity, and autopickup.
 api-version: '1.21'
 authors: [Team Sneakymouse]
 website: https://rawb.tv
+
+commands:
+  boh:
+    description: Open the Bag of Holding or run admin subcommands
+    usage: /<command> [reload|capacity|give|take]
+    permission: sneakybagofholding.use
+    aliases: [bag, bagofholding]
+
+permissions:
+  sneakybagofholding.use:
+    description: Open the bag of holding menu
+    default: true
+  sneakybagofholding.reload:
+    description: Reload plugin configuration
+    default: op
+  sneakybagofholding.admin:
+    description: Admin give/take stored amounts
+    default: op
+  sneakybagofholding.admin.capacity:
+    description: Set per-player item or category capacity overrides
+    default: op

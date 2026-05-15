@@ -1,0 +1,54 @@
+# SneakyBagOfHolding — see README for full documentation.
+
+categories:
+  fish:
+    default-capacity: 100
+    menu-title: "<gold>Fish and Bait"
+    menu-icon:
+      material: COD
+      name: "<gold>Fish and Bait"
+      custom-model-data: 1
+  crafting_reagent:
+    default-capacity: 50
+    menu-title: "<gold>Magic Reagents"
+    menu-icon:
+      material: NETHER_WART
+      name: "<gold>Magic Reagents"
+  ore:
+    default-capacity: 0
+    # No menu-icon: contributes capacity only, not browsable from hub
+
+settings:
+  menu:
+    main-title: "<gold>Bag of Holding"
+    category-rows: 6
+    commands:
+      - boh
+      - bag
+      - bagofholding
+    default-item-lore:
+      - "<yellow>Stored: <aqua>{stored}<yellow>/<aqua>{max}"
+      - "<yellow>L-Click:<gray> Withdraw Item"
+      - "<yellow>R-Click:<gray> Deposit Item"
+      - "<gray>Hold Shift to move Stacks"
+      - ""
+      - "<yellow>Autoloot: {autoloot_status}"
+      - "<gray>F to Toggle"
+  autopickup:
+    suppress-vanilla-pickup-sound: true
+
+items:
+  fish-catfish1:
+    categories: [fish, crafting_reagent]
+    default-capacity: 1000
+    display:
+      autopickup-on:
+        custom-model-data: 94
+      autopickup-off:
+        custom-model-data: 95
+  item-banana:
+    categories: [crafting_reagent]
+    default-capacity: 1000
+  item-ore:
+    categories: [ore, crafting_reagent]
+    default-capacity: 1000

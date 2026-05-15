@@ -24,6 +24,12 @@ kotlin {
 }
 
 tasks {
+    processResources {
+        filesMatching("paper-plugin.yml") {
+            expand("version" to project.version)
+        }
+    }
+
     compileKotlin {
         kotlinOptions {
             jvmTarget = "21"
