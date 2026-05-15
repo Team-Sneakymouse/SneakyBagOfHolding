@@ -22,26 +22,30 @@ class CategoryNavigation(private val configManager: ConfigManager) {
 
     data class ViewState(val categoryId: String, val pageIndex: Int)
 
-    /** Next page in this category, or page 0 of the next browsable category. */
+    /** Next page in this category, or page 0 of the next browsable category (wraps to first). */
     fun resolveNext(current: ViewState): ViewState? {
         val pages = pageCount(current.categoryId)
         if (current.pageIndex < pages - 1) {
             return ViewState(current.categoryId, current.pageIndex + 1)
         }
-        val catIdx = categoryIndex(current.categoryId)
         val ids = browsableCategoryIds()
-        if (catIdx < 0 || catIdx >= ids.size - 1) return null
-        return ViewState(ids[catIdx + 1], 0)
+        if (ids.isEmpty()) return null
+        val catIdx = categoryIndex(current.categoryId)
+        if (catIdx < 0) return null
+        val nextCategoryId = ids[(catIdx + 1) % ids.size]
+        return ViewState(nextCategoryId, 0)
     }
 
-    /** Previous page in this category, or the last page of the previous browsable category. */
+    /** Previous page in this category, or the last page of the previous browsable category (wraps to last). */
     fun resolvePrevious(current: ViewState): ViewState? {
         if (current.pageIndex > 0) {
             return ViewState(current.categoryId, current.pageIndex - 1)
         }
+        val ids = browsableCategoryIds()
+        if (ids.isEmpty()) return null
         val catIdx = categoryIndex(current.categoryId)
-        if (catIdx <= 0) return null
-        val prevCategoryId = browsableCategoryIds()[catIdx - 1]
+        if (catIdx < 0) return null
+        val prevCategoryId = ids[(catIdx - 1 + ids.size) % ids.size]
         val lastPage = pageCount(prevCategoryId) - 1
         return ViewState(prevCategoryId, lastPage)
     }
