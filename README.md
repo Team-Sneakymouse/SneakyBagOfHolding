@@ -125,7 +125,7 @@ Player overrides via `/boh capacity` replace the config default for that compone
      --fix-uuid-filenames
    ```
 
-   Legacy mapping: `item-banana` → `bank_itembanana`, `max_itembanana`, `autoloot_itembanana`.
+   Legacy mapping: dashes removed from the item id, camelCase kept — `item-spellThread` → `bank_itemspellThread`, `max_itemspellThread`, `autoloot_itemspellThread` (lookup is case-insensitive).
 
 4. Remove old spells (`system-bagofholding-*`), variables block, and `autolootPickup` from spellbooks.
 

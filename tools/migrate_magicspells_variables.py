@@ -10,7 +10,7 @@ Usage:
     [--import-all-max]
 
 MagicSpells format: PLAYER_<uuid>.txt with lines like bank_itembanana=42
-Legacy keys: item id lowercased with dashes removed (item-banana -> itembanana).
+Legacy keys: item id with dashes removed, camelCase preserved (item-spellThread -> bank_itemspellThread).
 """
 
 from __future__ import annotations
@@ -30,7 +30,13 @@ except ImportError:
 
 
 def legacy_key(item_id: str) -> str:
-    return item_id.lower().replace("-", "")
+    """MagicSpells variable suffix: item-spellThread -> itemspellThread (not all-lowercase)."""
+    return item_id.replace("-", "")
+
+
+def ms_value_index(ms_values: dict[str, str]) -> dict[str, str]:
+    """Case-insensitive lookup for PLAYER_*.txt keys (bank_itemspellThread vs bank_itemspellthread)."""
+    return {k.lower(): v for k, v in ms_values.items()}
 
 
 def normalize_uuid(raw: str) -> str:
@@ -99,31 +105,32 @@ def migrate_file(
     stored: dict[str, int] = {}
     autopickup: dict[str, bool] = {}
     item_capacity: dict[str, int] = {}
+    ms_index = ms_value_index(ms_values)
 
     for item_id in item_ids:
         key = legacy_key(item_id)
-        bank_key = f"bank_{key}"
-        max_key = f"max_{key}"
-        autoloot_key = f"autoloot_{key}"
+        bank_key = f"bank_{key}".lower()
+        max_key = f"max_{key}".lower()
+        autoloot_key = f"autoloot_{key}".lower()
 
-        if bank_key in ms_values:
+        if bank_key in ms_index:
             try:
-                amount = int(float(ms_values[bank_key]))
+                amount = int(float(ms_index[bank_key]))
                 if amount > 0:
                     stored[item_id] = amount
             except ValueError:
                 pass
 
-        if autoloot_key in ms_values:
+        if autoloot_key in ms_index:
             try:
-                if int(float(ms_values[autoloot_key])) == 1:
+                if int(float(ms_index[autoloot_key])) == 1:
                     autopickup[item_id] = True
             except ValueError:
                 pass
 
-        if max_key in ms_values:
+        if max_key in ms_index:
             try:
-                max_val = int(float(ms_values[max_key]))
+                max_val = int(float(ms_index[max_key]))
                 item_cfg = item_defs.get(item_id) or {}
                 if "default-capacity" in item_cfg:
                     default = int(item_cfg["default-capacity"])
