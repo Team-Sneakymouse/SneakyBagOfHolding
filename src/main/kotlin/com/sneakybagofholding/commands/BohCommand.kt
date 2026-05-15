@@ -1,164 +1,156 @@
 package com.sneakybagofholding.commands
 
-import com.sneakybagofholding.SneakyBagOfHolding
 import com.sneakybagofholding.config.ConfigManager
 import com.sneakybagofholding.gui.MenuService
 import com.sneakybagofholding.service.BagService
 import com.sneakybagofholding.storage.PlayerDataStore
+import io.papermc.paper.command.brigadier.BasicCommand
+import io.papermc.paper.command.brigadier.CommandSourceStack
 import org.bukkit.Bukkit
-import org.bukkit.command.Command
-import org.bukkit.command.CommandExecutor
 import org.bukkit.command.CommandSender
-import org.bukkit.command.TabCompleter
 import org.bukkit.entity.Player
 
 /**
  * Main `/boh` command: open menu, reload, capacity admin, give/take admin.
+ *
+ * Registered via [org.bukkit.plugin.java.JavaPlugin.registerCommand] (Paper plugins).
  */
 class BohCommand(
-    private val plugin: SneakyBagOfHolding,
     private val configManager: ConfigManager,
     private val menuService: MenuService,
     private val bagService: BagService,
     private val playerDataStore: PlayerDataStore,
     private val onReload: () -> Unit
-) : CommandExecutor, TabCompleter {
+) : BasicCommand {
 
-    override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
+    override fun permission(): String = PERM_USE
+
+    override fun execute(stack: CommandSourceStack, args: Array<out String>) {
+        val sender = stack.sender
         if (args.isEmpty()) {
-            if (sender !is Player) {
+            val player = sender as? Player ?: run {
                 sender.sendMessage("This command can only be used by players.")
-                return true
+                return
             }
             if (!sender.hasPermission(PERM_USE)) {
                 sender.sendMessage("You do not have permission.")
-                return true
+                return
             }
-            menuService.openMainMenu(sender)
-            return true
+            menuService.openMainMenu(player)
+            return
         }
         when (args[0].lowercase()) {
             "reload" -> {
                 if (!sender.hasPermission(PERM_RELOAD)) {
                     sender.sendMessage("You do not have permission.")
-                    return true
+                    return
                 }
                 onReload()
                 sender.sendMessage("SneakyBagOfHolding config reloaded.")
-                return true
             }
-            "capacity" -> return handleCapacity(sender, args)
-            "give" -> return handleGiveTake(sender, args, add = true)
-            "take" -> return handleGiveTake(sender, args, add = false)
-            else -> {
-                sender.sendMessage("Usage: /$label [reload|capacity|give|take]")
-                return true
-            }
+            "capacity" -> handleCapacity(sender, args)
+            "give" -> handleGiveTake(sender, args, add = true)
+            "take" -> handleGiveTake(sender, args, add = false)
+            else -> sender.sendMessage("Usage: /boh [reload|capacity|give|take]")
         }
     }
 
-    private fun handleCapacity(sender: CommandSender, args: Array<out String>): Boolean {
+    override fun suggest(stack: CommandSourceStack, args: Array<out String>): Collection<String> {
+        val sender = stack.sender
+        return when {
+            args.size == 1 -> listOf("reload", "capacity", "give", "take")
+                .filter { it.startsWith(args[0].lowercase()) }
+            args.size == 2 && args[0].lowercase() in listOf("capacity", "give", "take") ->
+                Bukkit.getOnlinePlayers().map { it.name }
+                    .filter { it.lowercase().startsWith(args[1].lowercase()) }
+            args.size == 3 && args[0].lowercase() == "capacity" ->
+                listOf("item", "category").filter { it.startsWith(args[2].lowercase()) }
+            args.size == 4 && args[0].lowercase() == "capacity" ->
+                when (args[2].lowercase()) {
+                    "item" -> configManager.getItems().keys
+                        .filter { it.lowercase().startsWith(args[3].lowercase()) }
+                    "category" -> configManager.getCategories().keys
+                        .filter { it.lowercase().startsWith(args[3].lowercase()) }
+                    else -> emptyList()
+                }
+            args.size == 3 && args[0].lowercase() in listOf("give", "take") ->
+                configManager.getItems().keys.filter { it.lowercase().startsWith(args[2].lowercase()) }
+            else -> emptyList()
+        }
+    }
+
+    private fun handleCapacity(sender: CommandSender, args: Array<out String>) {
         if (!sender.hasPermission(PERM_ADMIN_CAPACITY)) {
             sender.sendMessage("You do not have permission.")
-            return true
+            return
         }
         if (args.size < 5) {
             sender.sendMessage("Usage: /boh capacity <player> item|category <id> <value>")
-            return true
+            return
         }
         val target = Bukkit.getPlayer(args[1])
         if (target == null) {
             sender.sendMessage("Player not found.")
-            return true
+            return
         }
         val type = args[2].lowercase()
         val id = args[3]
         val value = args[4].toIntOrNull()
         if (value == null) {
             sender.sendMessage("Value must be an integer.")
-            return true
+            return
         }
         when (type) {
             "item" -> {
                 if (configManager.getItems()[id] == null) {
                     sender.sendMessage("Unknown item: $id")
-                    return true
+                    return
                 }
                 bagService.setItemCapacityOverride(target.uniqueId, id, value)
             }
             "category" -> {
                 if (configManager.getCategories()[id] == null) {
                     sender.sendMessage("Unknown category: $id")
-                    return true
+                    return
                 }
                 bagService.setCategoryCapacityOverride(target.uniqueId, id, value)
             }
             else -> {
                 sender.sendMessage("Type must be item or category.")
-                return true
+                return
             }
         }
         sender.sendMessage("Set $type capacity for ${target.name}: $id = $value")
         if (target.isOnline) menuService.refreshOpenMenu(target)
-        return true
     }
 
-    private fun handleGiveTake(sender: CommandSender, args: Array<out String>, add: Boolean): Boolean {
+    private fun handleGiveTake(sender: CommandSender, args: Array<out String>, add: Boolean) {
         if (!sender.hasPermission(PERM_ADMIN)) {
             sender.sendMessage("You do not have permission.")
-            return true
+            return
         }
         if (args.size < 4) {
             sender.sendMessage("Usage: /boh ${if (add) "give" else "take"} <player> <itemId> <amount>")
-            return true
+            return
         }
         val target = Bukkit.getPlayer(args[1]) ?: run {
             sender.sendMessage("Player not found.")
-            return true
+            return
         }
         val itemId = args[2]
         val amount = args[3].toIntOrNull() ?: run {
             sender.sendMessage("Amount must be an integer.")
-            return true
+            return
         }
         if (configManager.getItems()[itemId] == null) {
             sender.sendMessage("Unknown item: $itemId")
-            return true
+            return
         }
         val current = playerDataStore.get(target).getStored(itemId)
         val newAmount = if (add) current + amount else (current - amount).coerceAtLeast(0)
         val result = bagService.adminSetStored(target, itemId, newAmount)
         sender.sendMessage("${if (add) "Gave" else "Took"} storage; new stored amount: $result")
         menuService.refreshOpenMenu(target)
-        return true
-    }
-
-    override fun onTabComplete(
-        sender: CommandSender,
-        command: Command,
-        alias: String,
-        args: Array<out String>
-    ): List<String> {
-        if (args.size == 1) {
-            return listOf("reload", "capacity", "give", "take").filter { it.startsWith(args[0].lowercase()) }
-        }
-        if (args.size == 2 && args[0].lowercase() in listOf("capacity", "give", "take")) {
-            return Bukkit.getOnlinePlayers().map { it.name }.filter { it.lowercase().startsWith(args[1].lowercase()) }
-        }
-        if (args.size == 3 && args[0].lowercase() == "capacity") {
-            return listOf("item", "category").filter { it.startsWith(args[2].lowercase()) }
-        }
-        if (args.size == 4 && args[0].lowercase() == "capacity") {
-            return when (args[2].lowercase()) {
-                "item" -> configManager.getItems().keys.filter { it.lowercase().startsWith(args[3].lowercase()) }
-                "category" -> configManager.getCategories().keys.filter { it.lowercase().startsWith(args[3].lowercase()) }
-                else -> emptyList()
-            }
-        }
-        if (args.size == 3 && args[0].lowercase() in listOf("give", "take")) {
-            return configManager.getItems().keys.filter { it.lowercase().startsWith(args[2].lowercase()) }
-        }
-        return emptyList()
     }
 
     companion object {

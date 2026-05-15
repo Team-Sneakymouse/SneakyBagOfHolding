@@ -1,6 +1,5 @@
 package com.sneakybagofholding.registry
 
-import com.nisovin.magicspells.util.magicitems.MagicItemData
 import com.sneakybagofholding.config.ConfigManager
 import com.sneakybagofholding.config.ItemDefinition
 import org.bukkit.inventory.ItemStack
@@ -14,10 +13,14 @@ class ItemRegistry(
 ) {
 
     private var itemsById: Map<String, ItemDefinition> = emptyMap()
-    private var templates: List<Pair<String, MagicItemData>> = emptyList()
+    private var templates: List<Pair<String, Any>> = emptyList()
 
     fun reload() {
         itemsById = configManager.getItems()
+        if (!magicItemResolver.isAvailable()) {
+            templates = emptyList()
+            return
+        }
         templates = itemsById.keys.mapNotNull { id ->
             magicItemResolver.getTemplateData(id)?.let { id to it }
         }
@@ -26,8 +29,6 @@ class ItemRegistry(
     fun getItem(id: String): ItemDefinition? = itemsById[id]
 
     fun getAllItems(): Collection<ItemDefinition> = itemsById.values
-
-    fun getTemplates(): List<Pair<String, MagicItemData>> = templates
 
     /**
      * Resolves a picked-up or clicked [stack] to a configured item id, or null.

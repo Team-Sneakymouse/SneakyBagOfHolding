@@ -5,12 +5,13 @@ import com.sneakybagofholding.commands.BohCommand
 import com.sneakybagofholding.config.ConfigManager
 import com.sneakybagofholding.gui.MenuService
 import com.sneakybagofholding.listener.AutoPickupListener
+import com.sneakybagofholding.listener.MagicSpellsHookListener
 import com.sneakybagofholding.listener.PlayerDataListener
+import org.bukkit.Bukkit
 import com.sneakybagofholding.registry.ItemRegistry
 import com.sneakybagofholding.registry.MagicItemResolver
 import com.sneakybagofholding.service.BagService
 import com.sneakybagofholding.storage.PlayerDataStore
-import org.bukkit.command.PluginCommand
 import org.bukkit.plugin.java.JavaPlugin
 
 class SneakyBagOfHolding : JavaPlugin() {
@@ -52,14 +53,21 @@ class SneakyBagOfHolding : JavaPlugin() {
             playerDataStore
         )
 
-        reloadAll()
-
+        configManager.reload()
         registerCommands()
         server.pluginManager.registerEvents(menuService, this)
         server.pluginManager.registerEvents(AutoPickupListener(configManager, itemRegistry, bagService), this)
         server.pluginManager.registerEvents(PlayerDataListener(playerDataStore), this)
+        server.pluginManager.registerEvents(MagicSpellsHookListener(this), this)
 
         playerDataStore.startAutoSave()
+
+        // MagicSpells may enable after us; hook now or when PluginEnableEvent fires
+        if (!magicItemResolver.initialize()) {
+            Bukkit.getScheduler().runTaskLater(this, Runnable { retryMagicSpellsHook() }, 1L)
+        } else {
+            itemRegistry.reload()
+        }
 
         logger.info("SneakyBagOfHolding enabled.")
     }
@@ -77,20 +85,23 @@ class SneakyBagOfHolding : JavaPlugin() {
         menuService.closeAllMenus()
     }
 
+    private fun retryMagicSpellsHook() {
+        if (magicItemResolver.isAvailable()) return
+        if (magicItemResolver.initialize()) {
+            itemRegistry.reload()
+        }
+    }
+
     private fun registerCommands() {
-        val boh = getCommand("boh") ?: run {
-            logger.severe("Command 'boh' not defined in paper-plugin.yml")
-            return
-        }
-        val executor = BohCommand(this, configManager, menuService, bagService, playerDataStore) { reloadAll() }
-        boh.setExecutor(executor)
-        boh.tabCompleter = executor
-        for (alias in configManager.getSettings().commandAliases) {
-            if (alias.equals("boh", ignoreCase = true)) continue
-            val cmd = getCommand(alias)
-            cmd?.setExecutor(executor)
-            cmd?.tabCompleter = executor
-        }
+        val handler = BohCommand(configManager, menuService, bagService, playerDataStore) { reloadAll() }
+        val aliases = configManager.getSettings().commandAliases
+            .filter { !it.equals("boh", ignoreCase = true) }
+        registerCommand(
+            "boh",
+            "Open the Bag of Holding or run admin subcommands",
+            aliases,
+            handler
+        )
     }
 
     companion object {

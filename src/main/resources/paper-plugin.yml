@@ -6,12 +6,14 @@ api-version: '1.21'
 authors: [Team Sneakymouse]
 website: https://rawb.tv
 
-commands:
-  boh:
-    description: Open the Bag of Holding or run admin subcommands
-    usage: /<command> [reload|capacity|give|take]
-    permission: sneakybagofholding.use
-    aliases: [bag, bagofholding]
+dependencies:
+  server:
+    MagicSpells:
+      load: AFTER
+      required: false
+      join-classpath: true
+
+# Commands are registered in code via JavaPlugin#registerCommand (Paper plugins).
 
 permissions:
   sneakybagofholding.use:
