@@ -20,7 +20,7 @@ settings:
       - "<yellow>Autoloot: {autoloot_status}"
       - "<gray>F to Toggle"
   autopickup:
-    suppress-vanilla-pickup-sound: true
+    suppress-vanilla-pickup-sound: false
 
 categories:
   fish:
