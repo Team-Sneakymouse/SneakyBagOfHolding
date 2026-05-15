@@ -209,37 +209,62 @@ class MenuService(
     }
 
     private fun handleMainClick(event: InventoryClickEvent, player: Player, holder: BagInventoryHolder.MainMenu) {
-        val cursor = event.cursor
-        if (cursor != null && !cursor.type.isAir && event.clickedInventory == event.view.topInventory) {
-            tryDepositCursor(event, player)
-            return
-        }
+        if (tryShiftDeposit(event, player, holder)) return
+        if (tryCursorDeposit(event, player, holder) { true }) return
+
         if (event.clickedInventory == event.view.topInventory) {
             val slot = event.rawSlot
             val categories = configManager.getBrowsableCategories()
             val category = categories.getOrNull(slot) ?: return
             Bukkit.getScheduler().runTask(plugin, Runnable { openCategoryMenu(player, category.id) })
-            return
-        }
-        if (event.clickedInventory == event.view.bottomInventory && event.isShiftClick) {
-            val stack = event.currentItem ?: return
-            val deposited = bagService.depositFromStack(player, stack)
-            if (deposited > 0) refreshOpenMenu(player)
         }
     }
 
-    private fun tryDepositCursor(event: InventoryClickEvent, player: Player) {
-        val cursor = event.cursor?.clone() ?: return
-        val itemId = itemRegistry.resolveItemId(cursor) ?: return
+    /** Shift-click from player inventory into the bag. */
+    private fun tryShiftDeposit(
+        event: InventoryClickEvent,
+        player: Player,
+        holder: BagInventoryHolder,
+    ): Boolean {
+        if (event.clickedInventory != event.view.bottomInventory || !event.isShiftClick) return false
+        val stack = event.currentItem ?: return false
+        val itemId = itemRegistry.resolveItemId(stack) ?: return false
+        val deposited = bagService.depositFromStack(player, stack)
+        if (deposited > 0) refreshAfterDeposit(player, holder, itemId)
+        return deposited > 0
+    }
+
+    /** Place held stack into the top inventory (any non-navigation slot). */
+    private fun tryCursorDeposit(
+        event: InventoryClickEvent,
+        player: Player,
+        holder: BagInventoryHolder,
+        allowTopSlot: (Int) -> Boolean = { !CategoryMenuLayout.isNavigationSlot(it) },
+    ): Boolean {
+        val cursor = event.cursor ?: return false
+        if (cursor.type.isAir || event.clickedInventory != event.view.topInventory) return false
+        if (!allowTopSlot(event.rawSlot)) return false
+        val itemId = itemRegistry.resolveItemId(cursor) ?: return false
         val deposited = bagService.deposit(player, itemId, cursor.amount)
-        if (deposited > 0) {
-            cursor.amount -= deposited
-            event.view.setCursor(if (cursor.amount > 0) cursor else ItemStack(Material.AIR))
-            refreshOpenMenu(player)
+        if (deposited <= 0) return false
+        cursor.amount -= deposited
+        event.view.setCursor(if (cursor.amount > 0) cursor else ItemStack(Material.AIR))
+        refreshAfterDeposit(player, holder, itemId)
+        return true
+    }
+
+    private fun refreshAfterDeposit(player: Player, holder: BagInventoryHolder, itemId: String) {
+        when (holder) {
+            is BagInventoryHolder.MainMenu -> refreshOpenMenu(player)
+            is BagInventoryHolder.CategoryMenu ->
+                scheduleCategoryRefresh(player, holder.categoryId, itemId)
         }
     }
 
     private fun handleCategoryClick(event: InventoryClickEvent, player: Player, holder: BagInventoryHolder.CategoryMenu) {
+        if (tryShiftDeposit(event, player, holder)) return
+        if (tryCursorDeposit(event, player, holder)) return
+
         if (event.clickedInventory != event.view.topInventory) return
         val slot = event.rawSlot
 
@@ -320,11 +345,7 @@ class MenuService(
         if (deposited > 0) {
             cursor.amount -= deposited
             event.view.setCursor(if (cursor.amount > 0) cursor else ItemStack(Material.AIR))
-            if (holder is BagInventoryHolder.CategoryMenu) {
-                scheduleCategoryRefresh(player, holder.categoryId, itemId)
-            } else {
-                refreshOpenMenu(player)
-            }
+            refreshAfterDeposit(player, holder, itemId)
         }
     }
 
