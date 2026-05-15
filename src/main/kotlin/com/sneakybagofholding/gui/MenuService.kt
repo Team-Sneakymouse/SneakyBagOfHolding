@@ -1,9 +1,11 @@
 package com.sneakybagofholding.gui
 
+import com.sneakybagofholding.SneakyBagOfHolding
 import com.sneakybagofholding.capacity.CapacityService
 import com.sneakybagofholding.config.CategoryDefinition
 import com.sneakybagofholding.config.ConfigManager
 import com.sneakybagofholding.config.ItemDefinition
+import com.sneakybagofholding.config.ItemDisplayDefinition
 import com.sneakybagofholding.registry.ItemRegistry
 import com.sneakybagofholding.registry.MagicItemResolver
 import com.sneakybagofholding.service.BagService
@@ -11,9 +13,8 @@ import com.sneakybagofholding.storage.PlayerDataStore
 import com.sneakybagofholding.util.ItemMetaText
 import com.sneakybagofholding.util.ItemStackParser
 import com.sneakybagofholding.util.TextUtility
-import org.bukkit.Material
-import net.kyori.adventure.text.Component
 import org.bukkit.Bukkit
+import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
@@ -40,6 +41,8 @@ class MenuService(
 ) : Listener {
 
     private val openMenus = ConcurrentHashMap<UUID, BagInventoryHolder>()
+    private val categoryNavigation by lazy { CategoryNavigation(configManager) }
+    private val plugin get() = SneakyBagOfHolding.instance
 
     fun openMainMenu(player: Player) {
         val settings = configManager.getSettings()
@@ -52,18 +55,17 @@ class MenuService(
         player.openInventory(inv)
     }
 
-    fun openCategoryMenu(player: Player, categoryId: String) {
+    fun openCategoryMenu(player: Player, categoryId: String, pageIndex: Int = 0) {
         val category = configManager.getCategories()[categoryId] ?: return
         if (!category.isBrowsable) return
+        val pages = categoryNavigation.pageCount(categoryId)
+        val safePage = pageIndex.coerceIn(0, pages - 1)
         val rows = configManager.getSettings().categoryRows
-        val holder = BagInventoryHolder.CategoryMenu(categoryId)
-        val inv = Bukkit.createInventory(
-            holder,
-            rows * 9,
-            TextUtility.convertToComponent(category.menuTitle)
-        )
+        val holder = BagInventoryHolder.CategoryMenu(categoryId, safePage)
+        val title = categoryNavigation.inventoryTitle(category, safePage)
+        val inv = Bukkit.createInventory(holder, rows * 9, TextUtility.convertToComponent(title))
         holder.bind(inv)
-        populateCategoryMenu(inv, player, category)
+        populateCategoryMenu(inv, player, category, safePage)
         openMenus[player.uniqueId] = holder
         player.openInventory(inv)
     }
@@ -83,9 +85,33 @@ class MenuService(
             is BagInventoryHolder.MainMenu -> populateMainMenu(top, player)
             is BagInventoryHolder.CategoryMenu -> {
                 val cat = configManager.getCategories()[holder.categoryId] ?: return
-                populateCategoryMenu(top, player, cat)
+                populateCategoryMenu(top, player, cat, holder.pageIndex)
+                player.updateInventory()
             }
         }
+    }
+
+    /**
+     * Updates a single category row after deposit, withdraw, or autopickup toggle.
+     */
+    private fun refreshCategoryItem(player: Player, categoryId: String, itemId: String) {
+        val holder = openMenus[player.uniqueId] as? BagInventoryHolder.CategoryMenu ?: return
+        if (holder.categoryId != categoryId) return
+        val inv = player.openInventory.topInventory
+        val items = categoryNavigation.itemsInCategory(categoryId)
+        val globalIndex = items.indexOfFirst { it.id == itemId }
+        if (globalIndex < 0) return
+        val pageStart = holder.pageIndex * CategoryMenuLayout.ITEMS_PER_PAGE
+        val slot = globalIndex - pageStart
+        if (slot !in 0..CategoryMenuLayout.LAST_ITEM_SLOT) return
+        inv.setItem(slot, buildItemDisplay(player, items[globalIndex]))
+        player.updateInventory()
+    }
+
+    private fun scheduleCategoryRefresh(player: Player, categoryId: String, itemId: String) {
+        Bukkit.getScheduler().runTask(plugin, Runnable {
+            refreshCategoryItem(player, categoryId, itemId)
+        })
     }
 
     private fun populateMainMenu(inv: Inventory, player: Player) {
@@ -99,14 +125,61 @@ class MenuService(
         }
     }
 
-    private fun populateCategoryMenu(inv: Inventory, player: Player, category: CategoryDefinition) {
+    private fun populateCategoryMenu(
+        inv: Inventory,
+        player: Player,
+        category: CategoryDefinition,
+        pageIndex: Int
+    ) {
         inv.clear()
-        val items = configManager.getItemsInCategory(category.id)
-        var slot = 0
-        for (item in items) {
-            if (slot >= inv.size) break
-            inv.setItem(slot++, buildItemDisplay(player, item))
+        val items = categoryNavigation.itemsInCategory(category.id)
+        val pageStart = pageIndex * CategoryMenuLayout.ITEMS_PER_PAGE
+        val pageEnd = minOf(pageStart + CategoryMenuLayout.ITEMS_PER_PAGE, items.size)
+        for (globalIndex in pageStart until pageEnd) {
+            val slot = globalIndex - pageStart
+            inv.setItem(slot, buildItemDisplay(player, items[globalIndex]))
         }
+        populateCategoryNavigation(inv, CategoryNavigation.ViewState(category.id, pageIndex))
+    }
+
+    private fun populateCategoryNavigation(inv: Inventory, view: CategoryNavigation.ViewState) {
+        inv.setItem(CategoryMenuLayout.GAP_SLOT, null)
+
+        inv.setItem(
+            CategoryMenuLayout.PREV_TAB_SLOT,
+            buildNavButton(
+                Material.ARROW,
+                "<yellow>Previous",
+                categoryNavigation.prevButtonSubtitle(view)
+            )
+        )
+
+        inv.setItem(
+            CategoryMenuLayout.BACK_SLOT,
+            buildNavButton(
+                Material.OAK_DOOR,
+                "<yellow>Back",
+                "<gray>Main menu"
+            )
+        )
+
+        inv.setItem(
+            CategoryMenuLayout.NEXT_TAB_SLOT,
+            buildNavButton(
+                Material.ARROW,
+                "<yellow>Next",
+                categoryNavigation.nextButtonSubtitle(view)
+            )
+        )
+    }
+
+    private fun buildNavButton(material: Material, title: String, subtitle: String): ItemStack {
+        val stack = ItemStack(material)
+        val meta = stack.itemMeta ?: return stack
+        ItemMetaText.setDisplayName(meta, title)
+        ItemMetaText.setLore(meta, listOf(subtitle))
+        stack.itemMeta = meta
+        return stack
     }
 
     fun buildItemDisplay(player: Player, item: ItemDefinition): ItemStack {
@@ -119,7 +192,6 @@ class MenuService(
         val max = capacityService.effectiveMax(player, item.id)
         val autopickup = data.isAutopickupEnabled(item.id)
 
-        // Optional CMD overlay for autopickup on/off (only when configured)
         val cmdOverride = if (autopickup) {
             display?.autopickupOnCustomModelData
         } else {
@@ -151,10 +223,7 @@ class MenuService(
         return base
     }
 
-    /**
-     * Builds a display stack from config when MagicSpells items are unavailable.
-     */
-    private fun buildFallbackStack(item: ItemDefinition, display: com.sneakybagofholding.config.ItemDisplayDefinition?): ItemStack {
+    private fun buildFallbackStack(item: ItemDefinition, display: ItemDisplayDefinition?): ItemStack {
         val materialName = display?.material ?: "PAPER"
         val material = Material.matchMaterial(materialName.uppercase()) ?: Material.PAPER
         val stack = ItemStack(material)
@@ -165,9 +234,9 @@ class MenuService(
         return stack
     }
 
-    private fun itemIdAtSlot(inv: Inventory, slot: Int, categoryId: String): String? {
-        val items = configManager.getItemsInCategory(categoryId)
-        return items.getOrNull(slot)?.id
+    private fun itemIdAtSlot(categoryId: String, pageIndex: Int, slot: Int): String? {
+        val globalIndex = CategoryMenuLayout.globalItemIndex(pageIndex, slot) ?: return null
+        return categoryNavigation.itemsInCategory(categoryId).getOrNull(globalIndex)?.id
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
@@ -193,10 +262,7 @@ class MenuService(
             val slot = event.rawSlot
             val categories = configManager.getBrowsableCategories()
             val category = categories.getOrNull(slot) ?: return
-            Bukkit.getScheduler().runTask(
-                com.sneakybagofholding.SneakyBagOfHolding.instance,
-                Runnable { openCategoryMenu(player, category.id) }
-            )
+            Bukkit.getScheduler().runTask(plugin, Runnable { openCategoryMenu(player, category.id) })
             return
         }
         if (event.clickedInventory == event.view.bottomInventory && event.isShiftClick) {
@@ -212,7 +278,7 @@ class MenuService(
         val deposited = bagService.deposit(player, itemId, cursor.amount)
         if (deposited > 0) {
             cursor.amount -= deposited
-            event.view.setCursor(if (cursor.amount > 0) cursor else ItemStack(org.bukkit.Material.AIR))
+            event.view.setCursor(if (cursor.amount > 0) cursor else ItemStack(Material.AIR))
             refreshOpenMenu(player)
         }
     }
@@ -220,28 +286,56 @@ class MenuService(
     private fun handleCategoryClick(event: InventoryClickEvent, player: Player, holder: BagInventoryHolder.CategoryMenu) {
         if (event.clickedInventory != event.view.topInventory) return
         val slot = event.rawSlot
-        val itemId = itemIdAtSlot(event.inventory, slot, holder.categoryId) ?: return
+
+        val view = CategoryNavigation.ViewState(holder.categoryId, holder.pageIndex)
+
+        when (slot) {
+            CategoryMenuLayout.PREV_TAB_SLOT -> {
+                val target = categoryNavigation.resolvePrevious(view) ?: return
+                Bukkit.getScheduler().runTask(plugin, Runnable {
+                    openCategoryMenu(player, target.categoryId, target.pageIndex)
+                })
+                return
+            }
+            CategoryMenuLayout.BACK_SLOT -> {
+                Bukkit.getScheduler().runTask(plugin, Runnable { openMainMenu(player) })
+                return
+            }
+            CategoryMenuLayout.NEXT_TAB_SLOT -> {
+                val target = categoryNavigation.resolveNext(view) ?: return
+                Bukkit.getScheduler().runTask(plugin, Runnable {
+                    openCategoryMenu(player, target.categoryId, target.pageIndex)
+                })
+                return
+            }
+            CategoryMenuLayout.GAP_SLOT -> return
+        }
+
+        if (!CategoryMenuLayout.isItemSlot(slot)) return
+
+        val itemId = itemIdAtSlot(holder.categoryId, holder.pageIndex, slot) ?: return
+        val categoryId = holder.categoryId
         val click = event.click
         when {
             click == ClickType.SWAP_OFFHAND || click == ClickType.NUMBER_KEY && event.hotbarButton == 40 -> {
                 bagService.toggleAutopickup(player, itemId)
-                refreshOpenMenu(player)
+                scheduleCategoryRefresh(player, categoryId, itemId)
             }
             click == ClickType.LEFT -> {
                 bagService.withdraw(player, itemId, 1)
-                refreshOpenMenu(player)
+                scheduleCategoryRefresh(player, categoryId, itemId)
             }
             click == ClickType.SHIFT_LEFT -> {
                 bagService.withdraw(player, itemId, 99)
-                refreshOpenMenu(player)
+                scheduleCategoryRefresh(player, categoryId, itemId)
             }
             click == ClickType.RIGHT -> {
                 bagService.deposit(player, itemId, 1)
-                refreshOpenMenu(player)
+                scheduleCategoryRefresh(player, categoryId, itemId)
             }
             click == ClickType.SHIFT_RIGHT -> {
                 bagService.deposit(player, itemId, 99)
-                refreshOpenMenu(player)
+                scheduleCategoryRefresh(player, categoryId, itemId)
             }
         }
     }
@@ -251,6 +345,15 @@ class MenuService(
         val holder = event.inventory.holder as? BagInventoryHolder ?: return
         if (event.whoClicked !is Player) return
         val player = event.whoClicked as Player
+
+        if (holder is BagInventoryHolder.CategoryMenu) {
+            val onNav = event.rawSlots.any { CategoryMenuLayout.isNavigationSlot(it) }
+            if (onNav) {
+                event.isCancelled = true
+                return
+            }
+        }
+
         val topSlots = event.rawSlots.filter { it < event.view.topInventory.size }
         if (topSlots.isEmpty()) return
         event.isCancelled = true
@@ -260,8 +363,12 @@ class MenuService(
         val deposited = bagService.deposit(player, itemId, cursor.amount)
         if (deposited > 0) {
             cursor.amount -= deposited
-            event.view.setCursor(if (cursor.amount > 0) cursor else ItemStack(org.bukkit.Material.AIR))
-            refreshOpenMenu(player)
+            event.view.setCursor(if (cursor.amount > 0) cursor else ItemStack(Material.AIR))
+            if (holder is BagInventoryHolder.CategoryMenu) {
+                scheduleCategoryRefresh(player, holder.categoryId, itemId)
+            } else {
+                refreshOpenMenu(player)
+            }
         }
     }
 

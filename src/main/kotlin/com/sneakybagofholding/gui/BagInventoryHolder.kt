@@ -23,8 +23,12 @@ sealed class BagInventoryHolder : InventoryHolder {
         override val holderId: String = "main"
     }
 
-    /** Category browser listing items in one category. */
-    class CategoryMenu(val categoryId: String) : BagInventoryHolder() {
-        override val holderId: String = "category:$categoryId"
+    /**
+     * Category browser with paginated item rows (50 per page).
+     *
+     * @property pageIndex Zero-based page within [categoryId].
+     */
+    class CategoryMenu(val categoryId: String, val pageIndex: Int = 0) : BagInventoryHolder() {
+        override val holderId: String = "category:$categoryId:$pageIndex"
     }
 }
