@@ -85,7 +85,18 @@ Player overrides via `/boh capacity` replace the config default for that compone
 
 ## Migration from MagicSpells
 
-1. Bootstrap items from legacy spells YAML:
+1. Generate categories (hub icons + titles from legacy menus):
+
+   ```bash
+   python tools/generate_categories.py \
+     --spells-yml /path/to/spells-system-bagofholding.yml \
+     --spells-items-dir /path/to/dev/spells-items \
+     --merge-into plugins/SneakyBagOfHolding/config.yml
+   ```
+
+   Use `--list-icons` to preview representative items. Use `--legacy-hub-style` for the old jigsaw/rabbit_foot hub buttons.
+
+2. Bootstrap items from legacy spells YAML:
 
    ```bash
    python tools/bootstrap_config_from_spells.py \
