@@ -20,15 +20,22 @@ data class ItemDefinition(
 }
 
 /**
- * Display overrides for category browser rows and autopickup icon states.
+ * Display overrides for category browser rows.
+ *
+ * Appearance (material, name, base CMD) is taken from the MagicSpells item when available.
+ * Lore is always from [com.sneakybagofholding.config.PluginSettings.defaultItemLore] or [lore] here — never from MagicSpells.
  */
 data class ItemDisplayDefinition(
+    /** Optional override of the MagicSpells item display name. */
     val name: String?,
+    /** Per-item lore template; empty uses global default-item-lore from settings. */
     val lore: List<String>,
     /** Fallback material when MagicSpells cannot provide the item stack. */
     val material: String?,
     /** Fallback custom model data when MagicSpells cannot provide the item stack. */
     val customModelData: Int?,
+    /** Optional CMD when autopickup is enabled (defaults to MagicSpells item CMD). */
     val autopickupOnCustomModelData: Int?,
+    /** Optional CMD when autopickup is disabled (defaults to MagicSpells item CMD if unset). */
     val autopickupOffCustomModelData: Int?
 )

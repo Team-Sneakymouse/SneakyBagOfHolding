@@ -45,13 +45,12 @@ items:
     categories: [fish, crafting_reagent]
     # omits default-capacity → uses global item-capacity (1000)
     display:
-      # Used when MagicSpells item stack is unavailable (dev server / missing magic-items)
+      # material/name/CMD from MagicSpells when available; lore always from settings.default-item-lore
+      # Fallback when MagicSpells item is missing:
       material: RABBIT_FOOT
       custom-model-data: 626
-      autopickup-on:
-        custom-model-data: 626
       autopickup-off:
-        custom-model-data: 627
+        custom-model-data: 627   # CMD override while autoloot is off (optional autopickup-on: too)
   item-banana:
     categories: [crafting_reagent]
   item-ore:

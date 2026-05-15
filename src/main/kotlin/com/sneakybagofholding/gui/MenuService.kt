@@ -5,13 +5,11 @@ import com.sneakybagofholding.capacity.CapacityService
 import com.sneakybagofholding.config.CategoryDefinition
 import com.sneakybagofholding.config.ConfigManager
 import com.sneakybagofholding.config.ItemDefinition
-import com.sneakybagofholding.config.ItemDisplayDefinition
 import com.sneakybagofholding.registry.ItemRegistry
 import com.sneakybagofholding.registry.MagicItemResolver
 import com.sneakybagofholding.service.BagService
 import com.sneakybagofholding.storage.PlayerDataStore
 import com.sneakybagofholding.util.ItemMetaText
-import com.sneakybagofholding.util.ItemStackParser
 import com.sneakybagofholding.util.TextUtility
 import org.bukkit.Bukkit
 import org.bukkit.Material
@@ -42,6 +40,13 @@ class MenuService(
 
     private val openMenus = ConcurrentHashMap<UUID, BagInventoryHolder>()
     private val categoryNavigation by lazy { CategoryNavigation(configManager) }
+    private val itemDisplayBuilder by lazy {
+        ItemDisplayBuilder(
+            configManager,
+            magicItemResolver,
+            playerDataStore
+        ) { player, itemId -> capacityService.effectiveMax(player, itemId) }
+    }
     private val plugin get() = SneakyBagOfHolding.instance
 
     fun openMainMenu(player: Player) {
@@ -182,57 +187,8 @@ class MenuService(
         return stack
     }
 
-    fun buildItemDisplay(player: Player, item: ItemDefinition): ItemStack {
-        val display = item.display
-        val base = magicItemResolver.createItem(item.id, 1) ?: buildFallbackStack(item, display)
-        val meta = base.itemMeta ?: return base
-
-        val data = playerDataStore.get(player)
-        val stored = data.getStored(item.id)
-        val max = capacityService.effectiveMax(player, item.id)
-        val autopickup = data.isAutopickupEnabled(item.id)
-
-        val cmdOverride = if (autopickup) {
-            display?.autopickupOnCustomModelData
-        } else {
-            display?.autopickupOffCustomModelData
-        }
-        if (cmdOverride != null) {
-            meta.setCustomModelData(cmdOverride)
-        }
-
-        display?.name?.let { ItemMetaText.setDisplayName(meta, it) }
-
-        val loreTemplate = if (display?.lore.isNullOrEmpty()) {
-            configManager.getSettings().defaultItemLore
-        } else {
-            display!!.lore
-        }
-        val autopickupStatus = if (autopickup) "<green>[On]" else "<red>[Off]"
-        ItemMetaText.setLore(
-            meta,
-            loreTemplate.map { line ->
-                line.replace("{stored}", stored.toString())
-                    .replace("{max}", max.toString())
-                    .replace("{autoloot_status}", autopickupStatus)
-                    .replace("{item_id}", item.id)
-            }
-        )
-
-        base.itemMeta = meta
-        return base
-    }
-
-    private fun buildFallbackStack(item: ItemDefinition, display: ItemDisplayDefinition?): ItemStack {
-        val materialName = display?.material ?: "PAPER"
-        val material = Material.matchMaterial(materialName.uppercase()) ?: Material.PAPER
-        val stack = ItemStack(material)
-        val cmd = display?.customModelData
-        if (cmd != null) {
-            ItemStackParser.applyCustomModelData(stack, cmd)
-        }
-        return stack
-    }
+    fun buildItemDisplay(player: Player, item: ItemDefinition): ItemStack =
+        itemDisplayBuilder.build(player, item)
 
     private fun itemIdAtSlot(categoryId: String, pageIndex: Int, slot: Int): String? {
         val globalIndex = CategoryMenuLayout.globalItemIndex(pageIndex, slot) ?: return null
