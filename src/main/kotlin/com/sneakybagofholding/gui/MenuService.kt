@@ -185,24 +185,32 @@ class MenuService(
         val holder = event.view.topInventory.holder as? BagInventoryHolder ?: return
         if (event.whoClicked !is Player) return
         val player = event.whoClicked as Player
-        event.isCancelled = true
 
+        // Player inventory: allow normal clicks/drags; only intercept shift-click to deposit.
+        if (event.clickedInventory == event.view.bottomInventory) {
+            if (event.isShiftClick) {
+                event.isCancelled = true
+                tryShiftDeposit(event, player, holder)
+            }
+            return
+        }
+
+        if (event.clickedInventory != event.view.topInventory) return
+
+        event.isCancelled = true
         when (holder) {
-            is BagInventoryHolder.MainMenu -> handleMainClick(event, player, holder)
-            is BagInventoryHolder.CategoryMenu -> handleCategoryClick(event, player, holder)
+            is BagInventoryHolder.MainMenu -> handleMainTopClick(event, player, holder)
+            is BagInventoryHolder.CategoryMenu -> handleCategoryTopClick(event, player, holder)
         }
     }
 
-    private fun handleMainClick(event: InventoryClickEvent, player: Player, holder: BagInventoryHolder.MainMenu) {
-        if (tryShiftDeposit(event, player, holder)) return
+    private fun handleMainTopClick(event: InventoryClickEvent, player: Player, holder: BagInventoryHolder.MainMenu) {
         if (tryCursorDeposit(event, player, holder) { true }) return
 
-        if (event.clickedInventory == event.view.topInventory) {
-            val slot = event.rawSlot
-            val categories = configManager.getBrowsableCategories()
-            val category = categories.getOrNull(slot) ?: return
-            Bukkit.getScheduler().runTask(plugin, Runnable { openCategoryMenu(player, category.id) })
-        }
+        val slot = event.rawSlot
+        val categories = configManager.getBrowsableCategories()
+        val category = categories.getOrNull(slot) ?: return
+        Bukkit.getScheduler().runTask(plugin, Runnable { openCategoryMenu(player, category.id) })
     }
 
     /** Shift-click from player inventory into the bag. */
@@ -229,11 +237,10 @@ class MenuService(
         val cursor = event.cursor ?: return false
         if (cursor.type.isAir || event.clickedInventory != event.view.topInventory) return false
         if (!allowTopSlot(event.rawSlot)) return false
-        val itemId = itemRegistry.resolveItemId(cursor) ?: return false
-        val deposited = bagService.deposit(player, itemId, cursor.amount)
+        val cursorStack = cursor.clone()
+        val deposited = bagService.depositFromCursor(player, cursorStack)
         if (deposited <= 0) return false
-        cursor.amount -= deposited
-        event.view.setCursor(if (cursor.amount > 0) cursor else ItemStack(Material.AIR))
+        event.view.setCursor(if (cursorStack.amount > 0) cursorStack else ItemStack(Material.AIR))
         refreshAfterDeposit(player, holder)
         return true
     }
@@ -242,11 +249,9 @@ class MenuService(
         scheduleMenuRefresh(player, holder)
     }
 
-    private fun handleCategoryClick(event: InventoryClickEvent, player: Player, holder: BagInventoryHolder.CategoryMenu) {
-        if (tryShiftDeposit(event, player, holder)) return
+    private fun handleCategoryTopClick(event: InventoryClickEvent, player: Player, holder: BagInventoryHolder.CategoryMenu) {
         if (tryCursorDeposit(event, player, holder)) return
 
-        if (event.clickedInventory != event.view.topInventory) return
         val slot = event.rawSlot
 
         val view = CategoryNavigation.ViewState(holder.categoryId, holder.pageIndex)
@@ -307,23 +312,23 @@ class MenuService(
         if (event.whoClicked !is Player) return
         val player = event.whoClicked as Player
 
+        val topSize = event.view.topInventory.size
+        val topSlots = event.rawSlots.filter { it < topSize }
+        if (topSlots.isEmpty()) return
+
         if (holder is BagInventoryHolder.CategoryMenu) {
-            val onNav = event.rawSlots.any { CategoryMenuLayout.isNavigationSlot(it) }
+            val onNav = topSlots.any { CategoryMenuLayout.isNavigationSlot(it) }
             if (onNav) {
                 event.isCancelled = true
                 return
             }
         }
 
-        val topSlots = event.rawSlots.filter { it < event.view.topInventory.size }
-        if (topSlots.isEmpty()) return
         event.isCancelled = true
         val cursor = event.oldCursor.clone()
         if (cursor.type.isAir) return
-        val itemId = itemRegistry.resolveItemId(cursor) ?: return
-        val deposited = bagService.deposit(player, itemId, cursor.amount)
+        val deposited = bagService.depositFromCursor(player, cursor)
         if (deposited > 0) {
-            cursor.amount -= deposited
             event.view.setCursor(if (cursor.amount > 0) cursor else ItemStack(Material.AIR))
             refreshAfterDeposit(player, holder)
         }

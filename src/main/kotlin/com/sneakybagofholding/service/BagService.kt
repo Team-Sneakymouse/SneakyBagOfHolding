@@ -90,18 +90,33 @@ class BagService(
     }
 
     /**
-     * Deposits from a specific inventory stack (e.g. menu drag-drop).
+     * Deposits from a specific stack (shift-clicked slot). Does not scan the rest of the inventory.
      */
     fun depositFromStack(player: Player, stack: ItemStack): Int {
+        if (stack.amount <= 0) return 0
         val itemId = itemRegistry.resolveItemId(stack) ?: return 0
-        val amount = deposit(player, itemId, stack.amount)
-        if (amount > 0) {
-            stack.amount -= amount
-            if (stack.amount <= 0) {
-                player.inventory.remove(stack)
-            }
-        }
-        return amount
+        return addToStoredFromStack(player, itemId, stack)
+    }
+
+    /**
+     * Deposits from the item on the player's cursor (click or drag onto the menu).
+     */
+    fun depositFromCursor(player: Player, cursor: ItemStack): Int {
+        if (cursor.type.isAir) return 0
+        val itemId = itemRegistry.resolveItemId(cursor) ?: return 0
+        return addToStoredFromStack(player, itemId, cursor)
+    }
+
+    private fun addToStoredFromStack(player: Player, itemId: String, stack: ItemStack): Int {
+        if (!itemRegistry.isRegistered(itemId)) return 0
+        val remaining = capacityService.remaining(player, itemId)
+        if (remaining <= 0) return 0
+        val toDeposit = minOf(stack.amount, remaining)
+        stack.amount -= toDeposit
+        val data = playerDataStore.get(player)
+        data.setStored(itemId, data.getStored(itemId) + toDeposit)
+        playerDataStore.markDirty(player)
+        return toDeposit
     }
 
     /**
