@@ -3,6 +3,7 @@ package com.sneakybagofholding.gui
 import com.sneakybagofholding.config.ConfigManager
 import com.sneakybagofholding.config.ItemDefinition
 import com.sneakybagofholding.config.ItemDisplayDefinition
+import com.sneakybagofholding.registry.MagicDisplayAppearance
 import com.sneakybagofholding.registry.MagicItemResolver
 import com.sneakybagofholding.storage.PlayerDataStore
 import com.sneakybagofholding.util.ItemMetaText
@@ -23,41 +24,25 @@ class ItemDisplayBuilder(
     private val effectiveMax: (Player, String) -> Int
 ) {
 
-    /**
-     * Material, display name, and custom model data taken from a MagicSpells item stack.
-     */
-    private data class MagicItemAppearance(
-        val material: Material,
-        val customModelData: Int?,
-        val displayName: net.kyori.adventure.text.Component?
-    )
-
     fun build(player: Player, item: ItemDefinition): ItemStack {
         val display = item.display
-        val magicStack = magicItemResolver.createItem(item.id, 1)
-        val appearance = magicStack?.let { extractAppearance(it) }
+        val appearance = magicItemResolver.getDisplayAppearance(item.id)
 
         val stack = ItemStack(appearance?.material ?: resolveFallbackMaterial(display), 1)
-        val meta = stack.itemMeta ?: return stack
-
         val autopickupEnabled = playerDataStore.get(player).isAutopickupEnabled(item.id)
-        applyDisplayName(meta, appearance, display)
-        applyCustomModelData(meta, appearance, display, autopickupEnabled)
-        applyAutopickupGlow(meta, autopickupEnabled)
-        applyPluginLore(meta, player, item, display)
+        val loreLines = resolvePluginLoreLines(player, item, display)
+        val loreComponents = ItemMetaText.toLoreComponents(loreLines)
 
-        stack.itemMeta = meta
+        stack.editMeta { meta ->
+            GuiDisplayMarker.stripMagicSpellsIdentity(meta)
+            applyDisplayName(meta, appearance, display)
+            applyCustomModelData(meta, appearance, display, autopickupEnabled)
+            applyAutopickupGlow(meta, autopickupEnabled)
+            meta.lore(loreComponents)
+            GuiDisplayMarker.mark(meta)
+        }
+        ItemMetaText.syncLoreComponent(stack, loreComponents)
         return stack
-    }
-
-    private fun extractAppearance(magicStack: ItemStack): MagicItemAppearance {
-        val meta = magicStack.itemMeta
-        val cmd = if (meta != null && meta.hasCustomModelData()) meta.customModelData else null
-        return MagicItemAppearance(
-            material = magicStack.type,
-            customModelData = cmd,
-            displayName = meta?.displayName()
-        )
     }
 
     private fun resolveFallbackMaterial(display: ItemDisplayDefinition?): Material {
@@ -67,12 +52,12 @@ class ItemDisplayBuilder(
 
     private fun applyDisplayName(
         meta: ItemMeta,
-        appearance: MagicItemAppearance?,
-        display: ItemDisplayDefinition?
+        appearance: MagicDisplayAppearance?,
+        display: ItemDisplayDefinition?,
     ) {
         when {
             display?.name != null -> ItemMetaText.setDisplayName(meta, display.name)
-            appearance?.displayName != null -> meta.displayName(appearance.displayName)
+            !appearance?.displayName.isNullOrBlank() -> ItemMetaText.setDisplayName(meta, appearance!!.displayName!!)
         }
     }
 
@@ -82,9 +67,9 @@ class ItemDisplayBuilder(
      */
     private fun applyCustomModelData(
         meta: ItemMeta,
-        appearance: MagicItemAppearance?,
+        appearance: MagicDisplayAppearance?,
         display: ItemDisplayDefinition?,
-        autopickupEnabled: Boolean
+        autopickupEnabled: Boolean,
     ) {
         val baseCmd = appearance?.customModelData ?: display?.customModelData
         val cmd = when {
@@ -99,9 +84,6 @@ class ItemDisplayBuilder(
         }
     }
 
-    /**
-     * Enchant glint on the icon when autopickup is on (configurable via settings.menu.autopickup-enchant-glow).
-     */
     private fun applyAutopickupGlow(meta: ItemMeta, autopickupEnabled: Boolean) {
         if (!configManager.getSettings().autopickupEnchantGlow) {
             meta.setEnchantmentGlintOverride(null)
@@ -110,13 +92,15 @@ class ItemDisplayBuilder(
         meta.setEnchantmentGlintOverride(autopickupEnabled)
     }
 
-    /** Lore comes only from plugin templates, never from the MagicSpells item. */
-    private fun applyPluginLore(
-        meta: ItemMeta,
+    /**
+     * Plugin lore only. Per-item [ItemDisplayDefinition.lore] may override the global template when non-empty.
+     * MagicSpells item lore is never used.
+     */
+    private fun resolvePluginLoreLines(
         player: Player,
         item: ItemDefinition,
-        display: ItemDisplayDefinition?
-    ) {
+        display: ItemDisplayDefinition?,
+    ): List<String> {
         val data = playerDataStore.get(player)
         val stored = data.getStored(item.id)
         val max = effectiveMax(player, item.id)
@@ -128,15 +112,12 @@ class ItemDisplayBuilder(
             display!!.lore
         }
         val autopickupStatus = if (autopickup) "<green>[On]" else "<red>[Off]"
-        ItemMetaText.setLore(
-            meta,
-            loreTemplate.map { line ->
-                line.replace("{stored}", stored.toString())
-                    .replace("{max}", max.toString())
-                    .replace("{autoloot_status}", autopickupStatus)
-                    .replace("{item_id}", item.id)
-            }
-        )
+        return loreTemplate.map { line ->
+            line.replace("{stored}", stored.toString())
+                .replace("{max}", max.toString())
+                .replace("{autoloot_status}", autopickupStatus)
+                .replace("{item_id}", item.id)
+        }
     }
 
     fun buildFallbackOnly(item: ItemDefinition): ItemStack {

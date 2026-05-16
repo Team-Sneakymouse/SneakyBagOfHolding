@@ -22,6 +22,7 @@ import org.bukkit.event.inventory.ClickType
 import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.event.inventory.InventoryCloseEvent
 import org.bukkit.event.inventory.InventoryDragEvent
+import org.bukkit.event.inventory.InventoryOpenEvent
 import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.ItemStack
 import java.util.UUID
@@ -177,6 +178,16 @@ class MenuService(
         pageIndex: Int
     ) {
         inv.clear()
+        fillCategoryItemSlots(inv, player, category, pageIndex)
+        populateCategoryNavigation(inv, category, CategoryNavigation.ViewState(category.id, pageIndex))
+    }
+
+    private fun fillCategoryItemSlots(
+        inv: Inventory,
+        player: Player,
+        category: CategoryDefinition,
+        pageIndex: Int,
+    ) {
         val items = categoryNavigation.itemsInCategory(category.id)
         val pageStart = pageIndex * CategoryMenuLayout.ITEMS_PER_PAGE
         val pageEnd = minOf(pageStart + CategoryMenuLayout.ITEMS_PER_PAGE, items.size)
@@ -184,7 +195,28 @@ class MenuService(
             val slot = globalIndex - pageStart
             inv.setItem(slot, buildItemDisplay(player, items[globalIndex]))
         }
-        populateCategoryNavigation(inv, category, CategoryNavigation.ViewState(category.id, pageIndex))
+    }
+
+    /**
+     * MagicSpells ItemTagSpell runs on [InventoryOpenEvent] and can replace display icons with
+     * full magic items. Re-apply plugin-built icons on the next tick (after MS handlers).
+     */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    fun onInventoryOpen(event: InventoryOpenEvent) {
+        val holder = event.inventory.holder as? BagInventoryHolder ?: return
+        val player = event.player as? Player ?: return
+        Bukkit.getScheduler().runTask(plugin, Runnable {
+            if (!player.isOnline) return@Runnable
+            val top = player.openInventory.topInventory
+            if (top.holder != holder) return@Runnable
+            when (holder) {
+                is BagInventoryHolder.CategoryMenu -> {
+                    val category = configManager.getCategories()[holder.categoryId] ?: return@Runnable
+                    fillCategoryItemSlots(top, player, category, holder.pageIndex)
+                }
+                is BagInventoryHolder.MainMenu -> populateMainMenu(top, player)
+            }
+        })
     }
 
     private fun populateCategoryNavigation(
