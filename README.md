@@ -65,10 +65,25 @@ categories:
 ```yaml
 settings:
   menu:
-    autopickup-enchant-glow: true   # glint on icon when autopickup is on; no glint when off
+    autopickup-enchant-glow: true
+    slot-50:                          # level 1: main hub slot 50
+      material: GRAY_STAINED_GLASS_PANE
+      name: "<gray> "
+    category:
+      slot-50:                        # level 2: default for all category browsers
+        material: GRAY_STAINED_GLASS_PANE
+    category-icon-slots:              # hub icon positions (omit = slots 0, 1, 2… skipping 50)
+      fish: 10
+      crafting_reagent: 12
+
+categories:
+  fish:
+    menu:
+      slot-50: { material: LIME_STAINED_GLASS_PANE, name: "<green>Fish" }  # level 3 override
+      hub-slot: 10                    # optional per-category hub slot
 ```
 
-Per-item `display.autopickup-off.custom-model-data` still overrides the model while off (optional).
+Slot 50 is decorative only (no clicks, no deposits). Per-item `display.autopickup-off.custom-model-data` still overrides item icons when off (optional).
 
 ### Items
 

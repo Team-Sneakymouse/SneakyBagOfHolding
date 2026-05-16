@@ -106,13 +106,58 @@ class MenuService(
 
     private fun populateMainMenu(inv: Inventory, player: Player) {
         inv.clear()
+        val layout = configManager.getSettings().menuLayout
+        layout.mainMenuSlot50?.clone()?.let { inv.setItem(CategoryMenuLayout.GAP_SLOT, it) }
+
         val categories = configManager.getBrowsableCategories()
-        var slot = 0
-        for (category in categories) {
-            if (slot >= inv.size) break
-            val icon = category.menuIcon?.clone() ?: continue
-            inv.setItem(slot++, icon)
+        val useExplicitSlots = layout.mainMenuCategorySlots.isNotEmpty() ||
+            categories.any { it.mainMenuSlot != null }
+
+        if (useExplicitSlots) {
+            for (category in categories) {
+                val slot = category.mainMenuSlot ?: layout.mainMenuCategorySlots[category.id] ?: continue
+                if (slot !in 0 until inv.size) continue
+                val icon = category.menuIcon?.clone() ?: continue
+                inv.setItem(slot, icon)
+            }
+        } else {
+            var slot = 0
+            for (category in categories) {
+                slot = nextMainMenuCategorySlot(slot, inv.size)
+                if (slot < 0) break
+                val icon = category.menuIcon?.clone() ?: continue
+                inv.setItem(slot, icon)
+                slot++
+            }
         }
+    }
+
+    private fun nextMainMenuCategorySlot(candidate: Int, inventorySize: Int): Int {
+        var slot = candidate
+        while (slot < inventorySize && slot == CategoryMenuLayout.GAP_SLOT) {
+            slot++
+        }
+        return if (slot < inventorySize) slot else -1
+    }
+
+    private fun categoryAtMainMenuSlot(slot: Int): CategoryDefinition? {
+        val layout = configManager.getSettings().menuLayout
+        val categories = configManager.getBrowsableCategories()
+        val useExplicitSlots = layout.mainMenuCategorySlots.isNotEmpty() ||
+            categories.any { it.mainMenuSlot != null }
+        if (useExplicitSlots) {
+            return categories.firstOrNull { category ->
+                (category.mainMenuSlot ?: layout.mainMenuCategorySlots[category.id]) == slot
+            }
+        }
+        if (slot == CategoryMenuLayout.GAP_SLOT) return null
+        var index = 0
+        for (category in categories) {
+            val categorySlot = nextMainMenuCategorySlot(index, 54)
+            if (categorySlot == slot) return category
+            index = categorySlot + 1
+        }
+        return null
     }
 
     private fun populateCategoryMenu(
@@ -129,11 +174,16 @@ class MenuService(
             val slot = globalIndex - pageStart
             inv.setItem(slot, buildItemDisplay(player, items[globalIndex]))
         }
-        populateCategoryNavigation(inv, CategoryNavigation.ViewState(category.id, pageIndex))
+        populateCategoryNavigation(inv, category, CategoryNavigation.ViewState(category.id, pageIndex))
     }
 
-    private fun populateCategoryNavigation(inv: Inventory, view: CategoryNavigation.ViewState) {
-        inv.setItem(CategoryMenuLayout.GAP_SLOT, null)
+    private fun populateCategoryNavigation(
+        inv: Inventory,
+        category: CategoryDefinition,
+        view: CategoryNavigation.ViewState,
+    ) {
+        val slot50 = configManager.resolveCategoryMenuSlot50(category)?.clone()
+        inv.setItem(CategoryMenuLayout.GAP_SLOT, slot50)
 
         inv.setItem(
             CategoryMenuLayout.PREV_TAB_SLOT,
@@ -205,11 +255,10 @@ class MenuService(
     }
 
     private fun handleMainTopClick(event: InventoryClickEvent, player: Player, holder: BagInventoryHolder.MainMenu) {
-        if (tryCursorDeposit(event, player, holder) { true }) return
+        if (tryCursorDeposit(event, player, holder) { it != CategoryMenuLayout.GAP_SLOT }) return
 
         val slot = event.rawSlot
-        val categories = configManager.getBrowsableCategories()
-        val category = categories.getOrNull(slot) ?: return
+        val category = categoryAtMainMenuSlot(slot) ?: return
         Bukkit.getScheduler().runTask(plugin, Runnable { openCategoryMenu(player, category.id) })
     }
 

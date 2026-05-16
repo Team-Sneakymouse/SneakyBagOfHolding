@@ -3,6 +3,7 @@ package com.sneakybagofholding.config
 import com.sneakybagofholding.SneakyBagOfHolding
 import com.sneakybagofholding.util.ItemStackParser
 import org.bukkit.configuration.file.FileConfiguration
+import org.bukkit.inventory.ItemStack
 
 /**
  * Loads and exposes immutable configuration snapshots from config.yml.
@@ -76,8 +77,46 @@ class ConfigManager(private val plugin: SneakyBagOfHolding) {
                     "<yellow>Autoloot: {autoloot_status}",
                     "<gray>F to Toggle"
                 )
-            }
+            },
+            menuLayout = loadMenuLayout(menu),
         )
+    }
+
+    private fun loadMenuLayout(menu: org.bukkit.configuration.ConfigurationSection?): MenuLayoutSettings {
+        val categorySection = menu?.getConfigurationSection("category")
+        val iconSlotsSection = menu?.getConfigurationSection("category-icon-slots")
+        val iconSlots = iconSlotsSection?.getKeys(false)?.associateWith { key ->
+            iconSlotsSection.getInt(key)
+        } ?: emptyMap()
+        return MenuLayoutSettings(
+            mainMenuSlot50 = ItemStackParser.parse(menu?.getConfigurationSection("slot-50")),
+            categoryMenuSlot50 = ItemStackParser.parse(categorySection?.getConfigurationSection("slot-50")),
+            mainMenuCategorySlots = iconSlots,
+        )
+    }
+
+    /** Slot 50 decoration for a category browser: per-category → global category default. */
+    fun resolveCategoryMenuSlot50(category: CategoryDefinition): ItemStack? =
+        category.menuSlot50 ?: settings.menuLayout.categoryMenuSlot50
+
+    private fun loadCategoryMenuSlot50(cat: org.bukkit.configuration.ConfigurationSection): ItemStack? {
+        val menuSection = cat.getConfigurationSection("menu")
+        return ItemStackParser.parse(menuSection?.getConfigurationSection("slot-50"))
+    }
+
+    private fun loadCategoryMainMenuSlot(
+        cat: org.bukkit.configuration.ConfigurationSection,
+        categoryId: String,
+        layout: MenuLayoutSettings,
+    ): Int? {
+        val menuSection = cat.getConfigurationSection("menu")
+        if (menuSection != null && menuSection.contains("hub-slot")) {
+            return menuSection.getInt("hub-slot")
+        }
+        if (cat.contains("hub-slot")) {
+            return cat.getInt("hub-slot")
+        }
+        return layout.mainMenuCategorySlots[categoryId]
     }
 
     private fun loadCategories(config: FileConfiguration): Map<String, CategoryDefinition> {
@@ -86,12 +125,42 @@ class ConfigManager(private val plugin: SneakyBagOfHolding) {
         return section.getKeys(false).associateWith { id ->
             val cat = section.getConfigurationSection(id)!!
             val title = cat.getString("menu-title") ?: "<gold>${id.replace('_', ' ').replaceFirstChar { it.uppercase() }}"
+            val layout = settings.menuLayout
             CategoryDefinition(
                 id = id,
                 defaultCapacity = resolveCapacity(cat, "default-capacity", globalCategoryDefault),
                 menuIcon = ItemStackParser.parse(cat.getConfigurationSection("menu-icon")),
-                menuTitle = title
+                menuTitle = title,
+                menuSlot50 = loadCategoryMenuSlot50(cat),
+                mainMenuSlot = loadCategoryMainMenuSlot(cat, id, layout),
             )
+        }.also { loaded ->
+            validateMainMenuCategorySlots(loaded.values.toList(), settings.menuLayout)
+        }
+    }
+
+    private fun validateMainMenuCategorySlots(
+        categories: List<CategoryDefinition>,
+        layout: MenuLayoutSettings,
+    ) {
+        if (layout.mainMenuCategorySlots.isEmpty()) return
+        val byId = categories.associateBy { it.id }
+        val browsableIds = categories.filter { it.isBrowsable }.map { it.id }.toSet()
+        for ((categoryId, slot) in layout.mainMenuCategorySlots) {
+            if (categoryId !in byId) {
+                plugin.logger.warning("category-icon-slots: unknown category '$categoryId'")
+            } else if (categoryId !in browsableIds) {
+                plugin.logger.warning("category-icon-slots: '$categoryId' has no menu-icon")
+            }
+            if (slot < 0 || slot > 53) {
+                plugin.logger.warning("category-icon-slots: slot $slot for '$categoryId' is out of range (0-53)")
+            }
+        }
+        val slotCounts = layout.mainMenuCategorySlots.values.groupingBy { it }.eachCount()
+        for ((slot, count) in slotCounts) {
+            if (count > 1) {
+                plugin.logger.warning("category-icon-slots: slot $slot is assigned to $count categories")
+            }
         }
     }
 
