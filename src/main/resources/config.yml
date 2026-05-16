@@ -33,7 +33,7 @@ settings:
       - "<gray>Hold Shift to move Stacks"
       - ""
       - "<yellow>Autoloot: {autoloot_status}"
-      - "<gray>F to Toggle"
+      - "<gray><key:key.swapOffhand> to Toggle"
   autopickup:
     suppress-vanilla-pickup-sound: false
 
