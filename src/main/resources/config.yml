@@ -13,15 +13,18 @@ settings:
       - bag
       - bagofholding
     autopickup-enchant-glow: true   # glint on category icons when autopickup is on
-    # Decorative item for slot 50 (main hub). Omit for an empty slot.
-    # slot-50:
+    # Hub filler item (slot configurable). hide-tooltip defaults true for decorative items.
+    # hub-decorative:
+    #   slot: 49
     #   material: GRAY_STAINED_GLASS_PANE
     #   name: "<gray> "
+    # Legacy shorthand (slot 50): slot-50: { material: GRAY_STAINED_GLASS_PANE }
     category:
-      # Default slot-50 item for all category browsers (per-category can override under categories.<id>.menu)
-      # slot-50:
+      # Default category-browser filler (slot defaults to 50)
+      # decorative:
+      #   slot: 50
       #   material: GRAY_STAINED_GLASS_PANE
-      #   name: "<gray> "
+      # hide-tooltip: true   # optional; default true for decorative blocks
     # Place hub category icons on specific slots (0–53). Omit to fill from slot 0 upward (skips slot 50).
     # category-icon-slots:
     #   fish: 10
@@ -42,7 +45,7 @@ categories:
     default-capacity: 100     # overrides global category-capacity (0) for fish only
     menu-title: "<gold>Fish and Bait"
     # menu:
-    #   slot-50: { material: LIME_STAINED_GLASS_PANE, name: "<green>Fish tab" }
+    #   decorative: { slot: 50, material: LIME_STAINED_GLASS_PANE, name: "<green>Fish tab" }
     #   hub-slot: 10            # optional; or use settings.menu.category-icon-slots
     menu-icon:
       material: COD

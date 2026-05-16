@@ -89,19 +89,36 @@ class ConfigManager(private val plugin: SneakyBagOfHolding) {
             iconSlotsSection.getInt(key)
         } ?: emptyMap()
         return MenuLayoutSettings(
-            mainMenuSlot50 = ItemStackParser.parse(menu?.getConfigurationSection("slot-50")),
-            categoryMenuSlot50 = ItemStackParser.parse(categorySection?.getConfigurationSection("slot-50")),
+            mainMenuDecorative = parseMenuDecorative(
+                menu?.getConfigurationSection("hub-decorative")
+                    ?: menu?.getConfigurationSection("slot-50"),
+                defaultSlot = MenuDecorative.DEFAULT_CATEGORY_SLOT,
+            ),
+            categoryMenuDecorative = parseMenuDecorative(
+                categorySection?.getConfigurationSection("decorative")
+                    ?: categorySection?.getConfigurationSection("slot-50"),
+                defaultSlot = MenuDecorative.DEFAULT_CATEGORY_SLOT,
+            ),
             mainMenuCategorySlots = iconSlots,
         )
     }
 
-    /** Slot 50 decoration for a category browser: per-category → global category default. */
-    fun resolveCategoryMenuSlot50(category: CategoryDefinition): ItemStack? =
-        category.menuSlot50 ?: settings.menuLayout.categoryMenuSlot50
+    private fun parseMenuDecorative(
+        section: org.bukkit.configuration.ConfigurationSection?,
+        defaultSlot: Int,
+    ): MenuDecorative? = MenuDecorative.parse(section, defaultSlot)
 
-    private fun loadCategoryMenuSlot50(cat: org.bukkit.configuration.ConfigurationSection): ItemStack? {
-        val menuSection = cat.getConfigurationSection("menu")
-        return ItemStackParser.parse(menuSection?.getConfigurationSection("slot-50"))
+    /** Category browser filler: per-category → global category default. */
+    fun resolveCategoryMenuDecorative(category: CategoryDefinition): MenuDecorative? =
+        category.menuDecorative ?: settings.menuLayout.categoryMenuDecorative
+
+    private fun loadCategoryMenuDecorative(cat: org.bukkit.configuration.ConfigurationSection): MenuDecorative? {
+        val menuSection = cat.getConfigurationSection("menu") ?: return null
+        return parseMenuDecorative(
+            menuSection.getConfigurationSection("decorative")
+                ?: menuSection.getConfigurationSection("slot-50"),
+            MenuDecorative.DEFAULT_CATEGORY_SLOT,
+        )
     }
 
     private fun loadCategoryMainMenuSlot(
@@ -131,7 +148,7 @@ class ConfigManager(private val plugin: SneakyBagOfHolding) {
                 defaultCapacity = resolveCapacity(cat, "default-capacity", globalCategoryDefault),
                 menuIcon = ItemStackParser.parse(cat.getConfigurationSection("menu-icon")),
                 menuTitle = title,
-                menuSlot50 = loadCategoryMenuSlot50(cat),
+                menuDecorative = loadCategoryMenuDecorative(cat),
                 mainMenuSlot = loadCategoryMainMenuSlot(cat, id, layout),
             )
         }.also { loaded ->

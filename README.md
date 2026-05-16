@@ -66,11 +66,14 @@ categories:
 settings:
   menu:
     autopickup-enchant-glow: true
-    slot-50:                          # level 1: main hub slot 50
+    hub-decorative:                   # level 1: main hub filler (slot configurable)
+      slot: 49
       material: GRAY_STAINED_GLASS_PANE
       name: "<gray> "
+      # hide-tooltip: true            # default true for decorative items
     category:
-      slot-50:                        # level 2: default for all category browsers
+      decorative:                     # level 2: default for category browsers (slot defaults to 50)
+        slot: 50
         material: GRAY_STAINED_GLASS_PANE
     category-icon-slots:              # hub icon positions (omit = slots 0, 1, 2… skipping 50)
       fish: 10
@@ -79,11 +82,11 @@ settings:
 categories:
   fish:
     menu:
-      slot-50: { material: LIME_STAINED_GLASS_PANE, name: "<green>Fish" }  # level 3 override
+      decorative: { slot: 50, material: LIME_STAINED_GLASS_PANE, name: "<green>Fish" }  # level 3
       hub-slot: 10                    # optional per-category hub slot
 ```
 
-Slot 50 is decorative only (no clicks, no deposits). Per-item `display.autopickup-off.custom-model-data` still overrides item icons when off (optional).
+Decorative slots are non-interactive (no clicks, no deposits). Tooltip is hidden by default (`hide-tooltip: false` to show). Legacy key `slot-50:` still works (implies slot 50). Per-item `display.autopickup-off.custom-model-data` still overrides item icons when off (optional).
 
 ### Items
 

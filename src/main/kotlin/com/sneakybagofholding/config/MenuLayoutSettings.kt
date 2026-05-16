@@ -5,12 +5,12 @@ import org.bukkit.inventory.ItemStack
 /**
  * Hub and category menu layout options from `settings.menu`.
  *
- * @property mainMenuSlot50 Decorative item for slot 50 on the main hub (optional).
- * @property categoryMenuSlot50 Default decorative item for slot 50 on category browsers.
+ * @property mainMenuDecorative Optional hub filler item and slot (`hub-decorative` or legacy `slot-50`).
+ * @property categoryMenuDecorative Default filler for category browsers (`category.decorative` or `slot-50`).
  * @property mainMenuCategorySlots Category id → inventory slot for hub icons; empty = sequential from 0.
  */
 data class MenuLayoutSettings(
-    val mainMenuSlot50: ItemStack? = null,
-    val categoryMenuSlot50: ItemStack? = null,
+    val mainMenuDecorative: MenuDecorative? = null,
+    val categoryMenuDecorative: MenuDecorative? = null,
     val mainMenuCategorySlots: Map<String, Int> = emptyMap(),
 )

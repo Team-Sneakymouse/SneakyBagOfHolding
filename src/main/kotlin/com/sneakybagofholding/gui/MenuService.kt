@@ -5,6 +5,7 @@ import com.sneakybagofholding.capacity.CapacityService
 import com.sneakybagofholding.config.CategoryDefinition
 import com.sneakybagofholding.config.ConfigManager
 import com.sneakybagofholding.config.ItemDefinition
+import com.sneakybagofholding.config.MenuLayoutSettings
 import com.sneakybagofholding.registry.ItemRegistry
 import com.sneakybagofholding.registry.MagicItemResolver
 import com.sneakybagofholding.service.BagService
@@ -107,7 +108,9 @@ class MenuService(
     private fun populateMainMenu(inv: Inventory, player: Player) {
         inv.clear()
         val layout = configManager.getSettings().menuLayout
-        layout.mainMenuSlot50?.clone()?.let { inv.setItem(CategoryMenuLayout.GAP_SLOT, it) }
+        layout.mainMenuDecorative?.let { deco ->
+            inv.setItem(deco.slot, deco.item.clone())
+        }
 
         val categories = configManager.getBrowsableCategories()
         val useExplicitSlots = layout.mainMenuCategorySlots.isNotEmpty() ||
@@ -123,7 +126,7 @@ class MenuService(
         } else {
             var slot = 0
             for (category in categories) {
-                slot = nextMainMenuCategorySlot(slot, inv.size)
+                slot = nextMainMenuCategorySlot(slot, inv.size, layout)
                 if (slot < 0) break
                 val icon = category.menuIcon?.clone() ?: continue
                 inv.setItem(slot, icon)
@@ -132,13 +135,20 @@ class MenuService(
         }
     }
 
-    private fun nextMainMenuCategorySlot(candidate: Int, inventorySize: Int): Int {
+    private fun nextMainMenuCategorySlot(
+        candidate: Int,
+        inventorySize: Int,
+        layout: MenuLayoutSettings,
+    ): Int {
         var slot = candidate
-        while (slot < inventorySize && slot == CategoryMenuLayout.GAP_SLOT) {
+        while (slot < inventorySize && isReservedMainMenuSlot(slot, layout)) {
             slot++
         }
         return if (slot < inventorySize) slot else -1
     }
+
+    private fun isReservedMainMenuSlot(slot: Int, layout: MenuLayoutSettings): Boolean =
+        layout.mainMenuDecorative?.slot == slot
 
     private fun categoryAtMainMenuSlot(slot: Int): CategoryDefinition? {
         val layout = configManager.getSettings().menuLayout
@@ -150,10 +160,10 @@ class MenuService(
                 (category.mainMenuSlot ?: layout.mainMenuCategorySlots[category.id]) == slot
             }
         }
-        if (slot == CategoryMenuLayout.GAP_SLOT) return null
+        if (isReservedMainMenuSlot(slot, layout)) return null
         var index = 0
         for (category in categories) {
-            val categorySlot = nextMainMenuCategorySlot(index, 54)
+            val categorySlot = nextMainMenuCategorySlot(index, 54, layout)
             if (categorySlot == slot) return category
             index = categorySlot + 1
         }
@@ -182,8 +192,10 @@ class MenuService(
         category: CategoryDefinition,
         view: CategoryNavigation.ViewState,
     ) {
-        val slot50 = configManager.resolveCategoryMenuSlot50(category)?.clone()
-        inv.setItem(CategoryMenuLayout.GAP_SLOT, slot50)
+        val decorative = configManager.resolveCategoryMenuDecorative(category)
+        if (decorative != null) {
+            inv.setItem(decorative.slot, decorative.item.clone())
+        }
 
         inv.setItem(
             CategoryMenuLayout.PREV_TAB_SLOT,
@@ -255,7 +267,10 @@ class MenuService(
     }
 
     private fun handleMainTopClick(event: InventoryClickEvent, player: Player, holder: BagInventoryHolder.MainMenu) {
-        if (tryCursorDeposit(event, player, holder) { it != CategoryMenuLayout.GAP_SLOT }) return
+        val hubDecoSlot = configManager.getSettings().menuLayout.mainMenuDecorative?.slot
+        if (tryCursorDeposit(event, player, holder) { slot ->
+            hubDecoSlot == null || slot != hubDecoSlot
+        }) return
 
         val slot = event.rawSlot
         val category = categoryAtMainMenuSlot(slot) ?: return
@@ -281,7 +296,9 @@ class MenuService(
         event: InventoryClickEvent,
         player: Player,
         holder: BagInventoryHolder,
-        allowTopSlot: (Int) -> Boolean = { !CategoryMenuLayout.isNavigationSlot(it) },
+        allowTopSlot: (Int) -> Boolean = {
+            !CategoryMenuLayout.isNavigationSlot(it, CategoryMenuLayout.DEFAULT_DECORATIVE_SLOT)
+        },
     ): Boolean {
         val cursor = event.cursor ?: return false
         if (cursor.type.isAir || event.clickedInventory != event.view.topInventory) return false
@@ -299,7 +316,13 @@ class MenuService(
     }
 
     private fun handleCategoryTopClick(event: InventoryClickEvent, player: Player, holder: BagInventoryHolder.CategoryMenu) {
-        if (tryCursorDeposit(event, player, holder)) return
+        val category = configManager.getCategories()[holder.categoryId] ?: return
+        val decorativeSlot = configManager.resolveCategoryMenuDecorative(category)?.slot
+            ?: CategoryMenuLayout.DEFAULT_DECORATIVE_SLOT
+
+        if (tryCursorDeposit(event, player, holder) { !CategoryMenuLayout.isNavigationSlot(it, decorativeSlot) }) {
+            return
+        }
 
         val slot = event.rawSlot
 
@@ -324,7 +347,7 @@ class MenuService(
                 })
                 return
             }
-            CategoryMenuLayout.GAP_SLOT -> return
+            decorativeSlot -> return
         }
 
         if (!CategoryMenuLayout.isItemSlot(slot)) return
@@ -366,7 +389,10 @@ class MenuService(
         if (topSlots.isEmpty()) return
 
         if (holder is BagInventoryHolder.CategoryMenu) {
-            val onNav = topSlots.any { CategoryMenuLayout.isNavigationSlot(it) }
+            val category = configManager.getCategories()[holder.categoryId]
+            val decorativeSlot = category?.let { configManager.resolveCategoryMenuDecorative(it)?.slot }
+                ?: CategoryMenuLayout.DEFAULT_DECORATIVE_SLOT
+            val onNav = topSlots.any { CategoryMenuLayout.isNavigationSlot(it, decorativeSlot) }
             if (onNav) {
                 event.isCancelled = true
                 return

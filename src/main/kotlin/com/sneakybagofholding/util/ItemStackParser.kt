@@ -10,7 +10,12 @@ import org.bukkit.inventory.meta.ItemMeta
  */
 object ItemStackParser {
 
-    fun parse(section: ConfigurationSection?): ItemStack? {
+    data class Options(
+        /** When true, tooltip is hidden unless `hide-tooltip: false` is set in config. */
+        val hideTooltipByDefault: Boolean = false,
+    )
+
+    fun parse(section: ConfigurationSection?, options: Options = Options()): ItemStack? {
         if (section == null) return null
         val typeName = section.getString("material") ?: section.getString("type") ?: return null
         val material = Material.matchMaterial(typeName.uppercase()) ?: return null
@@ -24,6 +29,14 @@ object ItemStackParser {
         }
         if (section.contains("custom-model-data")) {
             meta.setCustomModelData(section.getInt("custom-model-data"))
+        }
+        val hideTooltip = when {
+            section.contains("hide-tooltip") -> section.getBoolean("hide-tooltip")
+            options.hideTooltipByDefault -> true
+            else -> false
+        }
+        if (hideTooltip) {
+            meta.isHideTooltip = true
         }
         stack.itemMeta = meta
         return stack
