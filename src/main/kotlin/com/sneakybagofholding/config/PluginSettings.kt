@@ -12,6 +12,7 @@ data class PluginSettings(
     val categoryRows: Int,
     val commandAliases: List<String>,
     val suppressAutopickupSound: Boolean,
+    val preventThrownPickup: Boolean,
     val defaultItemLore: List<String>,
     val defaultItemCapacity: Int = DEFAULT_ITEM_CAPACITY,
     val defaultCategoryCapacity: Int = DEFAULT_CATEGORY_CAPACITY,

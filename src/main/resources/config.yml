@@ -39,6 +39,7 @@ settings:
       - "<gray><key:key.swapOffhand> to Toggle"
   autopickup:
     suppress-vanilla-pickup-sound: false
+    prevent-thrown-pickup: true
 
 categories:
   fish:

@@ -23,9 +23,19 @@ class AutoPickupListener(
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     fun onEntityPickupItem(event: EntityPickupItemEvent) {
         val player = event.entity as? Player ?: return
-        val item = event.item.itemStack
+        val itemEntity = event.item
+
+        val settings = configManager.getSettings()
+        if (settings.preventThrownPickup) {
+            val thrower = itemEntity.thrower
+            if (thrower != null && thrower != player.uniqueId) {
+                return
+            }
+        }
+
+        val item = itemEntity.itemStack
         val itemId = itemRegistry.resolveItemId(item) ?: return
-        val suppressSound = configManager.getSettings().suppressAutopickupSound
+        val suppressSound = settings.suppressAutopickupSound
         val amount = item.amount
         val absorbed = bagService.absorbPickup(player, itemId, amount, suppressSound)
         if (absorbed <= 0) return
