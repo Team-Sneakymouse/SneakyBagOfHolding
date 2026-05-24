@@ -41,7 +41,7 @@ class AutoPickupListener(
         if (absorbed <= 0) return
         
         settings.audio.pickup?.play(player)
-        player.spawnParticle(Particle.WITCH, player.location.add(0.0, 1.0, 0.0), 1, 0.3, 0.3, 0.3, 0.0)
+        player.spawnParticle(Particle.WITCH, itemEntity.location.add(0.0, 0.5, 0.0), 5, 0.1, 0.1, 0.1, 0.1)
         
         val remaining = amount - absorbed
         if (remaining <= 0) {
