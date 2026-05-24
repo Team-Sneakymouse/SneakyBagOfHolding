@@ -19,6 +19,13 @@ settings:
     #   material: GRAY_STAINED_GLASS_PANE
     #   name: "<gray> "
     # Legacy shorthand (slot 50): slot-50: { material: GRAY_STAINED_GLASS_PANE }
+    
+    # Hub filler fills all unused slots in the main menu except for one open slot.
+    # This forces shift-clicked items to appear in the open slot for the cancel animation.
+    # hub-filler:
+    #   open-slot: 0
+    #   material: GRAY_STAINED_GLASS_PANE
+    #   name: "<gray> "
     category:
       # Default category-browser filler (slot defaults to 50)
       # decorative:

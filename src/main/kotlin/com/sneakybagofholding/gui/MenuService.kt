@@ -134,6 +134,14 @@ class MenuService(
                 slot++
             }
         }
+
+        layout.hubFiller?.let { filler ->
+            for (i in 0 until inv.size) {
+                if (i != filler.openSlot && (inv.getItem(i) == null || inv.getItem(i)!!.type.isAir)) {
+                    inv.setItem(i, filler.item.clone())
+                }
+            }
+        }
     }
 
     private fun nextMainMenuCategorySlot(

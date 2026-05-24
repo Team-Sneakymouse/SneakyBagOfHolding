@@ -101,6 +101,7 @@ class ConfigManager(private val plugin: SneakyBagOfHolding) {
                 defaultSlot = MenuDecorative.DEFAULT_CATEGORY_SLOT,
             ),
             mainMenuCategorySlots = iconSlots,
+            hubFiller = HubFiller.parse(menu?.getConfigurationSection("hub-filler")),
         )
     }
 
