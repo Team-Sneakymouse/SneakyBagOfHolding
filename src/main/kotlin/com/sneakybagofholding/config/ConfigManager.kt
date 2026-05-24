@@ -53,7 +53,6 @@ class ConfigManager(private val plugin: SneakyBagOfHolding) {
             categoryRows = menu?.getInt("category-rows") ?: 6,
             commandAliases = menu?.getStringList("commands")?.takeIf { it.isNotEmpty() }
                 ?: listOf("boh", "bag", "bagofholding"),
-            suppressAutopickupSound = autopickup?.getBoolean("suppress-vanilla-pickup-sound") ?: false,
             preventThrownPickup = autopickup?.getBoolean("prevent-thrown-pickup") ?: true,
             autopickupEnchantGlow = menu?.getBoolean("autopickup-enchant-glow") ?: true,
             defaultItemCapacity = defaults?.getInt(
@@ -80,6 +79,26 @@ class ConfigManager(private val plugin: SneakyBagOfHolding) {
                 )
             },
             menuLayout = loadMenuLayout(menu),
+            audio = loadAudioSettings(config.getConfigurationSection("settings.sounds")),
+        )
+    }
+
+    private fun loadAudioSettings(section: org.bukkit.configuration.ConfigurationSection?): AudioSettings {
+        if (section == null) return AudioSettings()
+        fun parseSound(key: String): SoundConfig? {
+            val s = section.getConfigurationSection(key) ?: return null
+            val sound = s.getString("sound") ?: return null
+            return SoundConfig(
+                sound = sound,
+                pitch = s.getDouble("pitch", 1.0).toFloat(),
+                volume = s.getDouble("volume", 1.0).toFloat()
+            )
+        }
+        return AudioSettings(
+            withdraw = parseSound("withdraw"),
+            deposit = parseSound("deposit"),
+            toggleAutoloot = parseSound("toggle-autoloot"),
+            pickup = parseSound("pickup")
         )
     }
 
@@ -235,7 +254,6 @@ class ConfigManager(private val plugin: SneakyBagOfHolding) {
             mainMenuTitle = "<gold>Bag of Holding",
             categoryRows = 6,
             commandAliases = listOf("boh", "bag", "bagofholding"),
-            suppressAutopickupSound = true,
             preventThrownPickup = true,
             defaultItemLore = emptyList(),
             defaultItemCapacity = PluginSettings.DEFAULT_ITEM_CAPACITY,

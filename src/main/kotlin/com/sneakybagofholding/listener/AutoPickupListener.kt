@@ -8,6 +8,7 @@ import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
+import org.bukkit.Particle
 import org.bukkit.event.entity.EntityPickupItemEvent
 import org.bukkit.inventory.ItemStack
 
@@ -35,10 +36,13 @@ class AutoPickupListener(
 
         val item = itemEntity.itemStack
         val itemId = itemRegistry.resolveItemId(item) ?: return
-        val suppressSound = settings.suppressAutopickupSound
         val amount = item.amount
-        val absorbed = bagService.absorbPickup(player, itemId, amount, suppressSound)
+        val absorbed = bagService.absorbPickup(player, itemId, amount)
         if (absorbed <= 0) return
+        
+        settings.audio.pickup?.play(player)
+        player.spawnParticle(Particle.WITCH, player.location.add(0.0, 1.0, 0.0), 1, 0.3, 0.3, 0.3, 0.0)
+        
         val remaining = amount - absorbed
         if (remaining <= 0) {
             event.item.remove()

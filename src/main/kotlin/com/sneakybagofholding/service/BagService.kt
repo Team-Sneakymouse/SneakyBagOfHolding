@@ -4,7 +4,6 @@ import com.sneakybagofholding.capacity.CapacityService
 import com.sneakybagofholding.registry.ItemRegistry
 import com.sneakybagofholding.registry.MagicItemResolver
 import com.sneakybagofholding.storage.PlayerDataStore
-import com.sneakybagofholding.util.PickupSounds
 import org.bukkit.Sound
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
@@ -123,7 +122,7 @@ class BagService(
      * Auto-pickup: adds [pickupAmount] to storage if enabled and room exists.
      * @return amount absorbed into the bag
      */
-    fun absorbPickup(player: Player, itemId: String, pickupAmount: Int, suppressSound: Boolean): Int {
+    fun absorbPickup(player: Player, itemId: String, pickupAmount: Int): Int {
         val data = playerDataStore.get(player)
         if (!data.isAutopickupEnabled(itemId)) return 0
         val remaining = capacityService.remaining(player, itemId)
@@ -131,14 +130,6 @@ class BagService(
         val absorbed = pickupAmount.coerceAtMost(remaining)
         data.setStored(itemId, data.getStored(itemId) + absorbed)
         playerDataStore.markDirty(player)
-        if (!suppressSound) {
-            player.playSound(
-                player.location,
-                Sound.ENTITY_ITEM_PICKUP,
-                0.3f,
-                PickupSounds.randomItemPickupPitch(),
-            )
-        }
         return absorbed
     }
 

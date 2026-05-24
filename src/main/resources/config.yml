@@ -44,8 +44,20 @@ settings:
       - ""
       - "<yellow>Autoloot: {autoloot_status}"
       - "<gray><key:key.swapOffhand> to Toggle"
+  sounds:
+    withdraw:
+      sound: "lom:ui.blockplink"
+      pitch: 1.2
+    deposit:
+      sound: "lom:ui.blockplink"
+      pitch: 1.0
+    toggle-autoloot:
+      sound: "lom:computer.open"
+      pitch: 1.0
+    pickup:
+      sound: "minecraft:entity.item.pickup"
+      pitch: 1.0
   autopickup:
-    suppress-vanilla-pickup-sound: false
     prevent-thrown-pickup: true
 
 categories:

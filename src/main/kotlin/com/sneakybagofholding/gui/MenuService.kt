@@ -327,7 +327,10 @@ class MenuService(
         val stack = event.currentItem ?: return false
         val itemId = itemRegistry.resolveItemId(stack) ?: return false
         val deposited = bagService.depositFromStack(player, stack)
-        if (deposited > 0) refreshAfterDeposit(player, holder)
+        if (deposited > 0) {
+            configManager.getSettings().audio.deposit?.play(player)
+            refreshAfterDeposit(player, holder)
+        }
         return deposited > 0
     }
 
@@ -346,6 +349,7 @@ class MenuService(
         val cursorStack = cursor.clone()
         val deposited = bagService.depositFromCursor(player, cursorStack)
         if (deposited <= 0) return false
+        configManager.getSettings().audio.deposit?.play(player)
         event.view.setCursor(if (cursorStack.amount > 0) cursorStack else ItemStack(Material.AIR))
         refreshAfterDeposit(player, holder)
         return true
@@ -397,22 +401,27 @@ class MenuService(
         when {
             click == ClickType.SWAP_OFFHAND || click == ClickType.NUMBER_KEY && event.hotbarButton == 40 -> {
                 bagService.toggleAutopickup(player, itemId)
+                configManager.getSettings().audio.toggleAutoloot?.play(player)
                 scheduleMenuRefresh(player, holder)
             }
             click == ClickType.LEFT -> {
-                bagService.withdraw(player, itemId, 1)
+                val withdrawn = bagService.withdraw(player, itemId, 1)
+                if (withdrawn > 0) configManager.getSettings().audio.withdraw?.play(player)
                 scheduleMenuRefresh(player, holder)
             }
             click == ClickType.SHIFT_LEFT -> {
-                bagService.withdraw(player, itemId, 99)
+                val withdrawn = bagService.withdraw(player, itemId, 99)
+                if (withdrawn > 0) configManager.getSettings().audio.withdraw?.play(player)
                 scheduleMenuRefresh(player, holder)
             }
             click == ClickType.RIGHT -> {
-                bagService.deposit(player, itemId, 1)
+                val deposited = bagService.deposit(player, itemId, 1)
+                if (deposited > 0) configManager.getSettings().audio.deposit?.play(player)
                 scheduleMenuRefresh(player, holder)
             }
             click == ClickType.SHIFT_RIGHT -> {
-                bagService.deposit(player, itemId, 99)
+                val deposited = bagService.deposit(player, itemId, 99)
+                if (deposited > 0) configManager.getSettings().audio.deposit?.play(player)
                 scheduleMenuRefresh(player, holder)
             }
         }
@@ -444,6 +453,7 @@ class MenuService(
         if (cursor.type.isAir) return
         val deposited = bagService.depositFromCursor(player, cursor)
         if (deposited > 0) {
+            configManager.getSettings().audio.deposit?.play(player)
             event.view.setCursor(if (cursor.amount > 0) cursor else ItemStack(Material.AIR))
             refreshAfterDeposit(player, holder)
         }
