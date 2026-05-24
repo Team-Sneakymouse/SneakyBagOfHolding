@@ -22,10 +22,11 @@ settings:
     
     # Hub filler fills all unused slots in the main menu except for one open slot.
     # This forces shift-clicked items to appear in the open slot for the cancel animation.
+    # Tooltip is automatically hidden for filler items.
     # hub-filler:
     #   open-slot: 0
     #   material: GRAY_STAINED_GLASS_PANE
-    #   name: "<gray> "
+    #   custom-model-data: 1
     category:
       # Default category-browser filler (slot defaults to 50)
       # decorative:
