@@ -88,9 +88,26 @@ class ConfigManager(private val plugin: SneakyBagOfHolding) {
         fun parseSound(key: String): SoundConfig? {
             val s = section.getConfigurationSection(key) ?: return null
             val sound = s.getString("sound") ?: return null
+            val pitchStr = s.getString("pitch")
+            var minPitch = 1.0f
+            var maxPitch = 1.0f
+            if (pitchStr != null) {
+                if ("-" in pitchStr) {
+                    val parts = pitchStr.split("-")
+                    minPitch = parts[0].trim().toFloatOrNull() ?: 1.0f
+                    maxPitch = parts.getOrNull(1)?.trim()?.toFloatOrNull() ?: minPitch
+                } else {
+                    minPitch = pitchStr.trim().toFloatOrNull() ?: 1.0f
+                    maxPitch = minPitch
+                }
+            } else if (s.contains("pitch")) {
+                 minPitch = s.getDouble("pitch", 1.0).toFloat()
+                 maxPitch = minPitch
+            }
             return SoundConfig(
                 sound = sound,
-                pitch = s.getDouble("pitch", 1.0).toFloat(),
+                minPitch = minPitch,
+                maxPitch = maxPitch,
                 volume = s.getDouble("volume", 1.0).toFloat()
             )
         }

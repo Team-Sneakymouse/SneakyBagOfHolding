@@ -45,6 +45,7 @@ settings:
       - ""
       - "<yellow>Autoloot: {autoloot_status}"
       - "<gray><key:key.swapOffhand> to Toggle"
+  # Pitch can be a single number (e.g., 1.0) or a range (e.g., "0.8-1.2") for random pitch
   sounds:
     withdraw:
       sound: "lom:ui.blockplink"
@@ -57,7 +58,7 @@ settings:
       pitch: 1.0
     pickup:
       sound: "minecraft:entity.item.pickup"
-      pitch: 1.0
+      pitch: "0.9-1.1"
   autopickup:
     prevent-thrown-pickup: true
 

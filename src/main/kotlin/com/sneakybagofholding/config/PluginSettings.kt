@@ -7,12 +7,18 @@ package com.sneakybagofholding.config
  * @property defaultCategoryCapacity Global category bonus when a category omits `default-capacity`.
  * @property defaultGlobalCapacity Per-player global bonus when the player has no override.
  */
+import java.util.concurrent.ThreadLocalRandom
+
 data class SoundConfig(
     val sound: String,
-    val pitch: Float = 1.0f,
+    val minPitch: Float = 1.0f,
+    val maxPitch: Float = 1.0f,
     val volume: Float = 1.0f
 ) {
     fun play(player: org.bukkit.entity.Player) {
+        val pitch = if (minPitch >= maxPitch) minPitch else {
+            ThreadLocalRandom.current().nextFloat() * (maxPitch - minPitch) + minPitch
+        }
         player.playSound(player.location, sound, org.bukkit.SoundCategory.PLAYERS, volume, pitch)
     }
 }
