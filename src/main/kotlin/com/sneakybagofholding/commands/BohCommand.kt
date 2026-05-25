@@ -1,5 +1,6 @@
 package com.sneakybagofholding.commands
 
+import com.sneakybagofholding.capacity.CapacityService
 import com.sneakybagofholding.config.ConfigManager
 import com.sneakybagofholding.gui.MenuService
 import com.sneakybagofholding.service.BagService
@@ -19,6 +20,7 @@ class BohCommand(
     private val configManager: ConfigManager,
     private val menuService: MenuService,
     private val bagService: BagService,
+    private val capacityService: CapacityService,
     private val playerDataStore: PlayerDataStore,
     private val onReload: () -> Unit
 ) : BasicCommand {
@@ -85,8 +87,8 @@ class BohCommand(
             return
         }
         if (args.size < 4) {
-            sender.sendMessage("Usage: /boh capacity <player> global <value>")
-            sender.sendMessage("       /boh capacity <player> item|category <id> <value>")
+            sender.sendMessage("Usage: /boh capacity <player> global <value|+delta|-delta>")
+            sender.sendMessage("       /boh capacity <player> item|category <id> <value|+delta|-delta>")
             return
         }
         val target = Bukkit.getPlayer(args[1])
@@ -97,44 +99,48 @@ class BohCommand(
         val type = args[2].lowercase()
         when (type) {
             "global" -> {
-                if (args.size < 4) {
-                    sender.sendMessage("Usage: /boh capacity <player> global <value>")
+                val parsed = parseCapacityValue(args[3]) ?: run {
+                    sender.sendMessage("Value must be an integer, or +N / -N to adjust.")
                     return
                 }
-                val value = args[3].toIntOrNull() ?: run {
-                    sender.sendMessage("Value must be an integer.")
-                    return
-                }
-                bagService.setGlobalCapacityOverride(target.uniqueId, value)
-                sender.sendMessage("Set global capacity for ${target.name}: $value")
+                val current = capacityService.getGlobalCapacity(target.uniqueId)
+                val newValue = resolveCapacityValue(current, parsed)
+                bagService.setGlobalCapacityOverride(target.uniqueId, newValue)
+                sender.sendMessage(capacityFeedback("global", target.name, null, current, newValue, parsed))
             }
             "item", "category" -> {
                 if (args.size < 5) {
-                    sender.sendMessage("Usage: /boh capacity <player> $type <id> <value>")
+                    sender.sendMessage("Usage: /boh capacity <player> $type <id> <value|+delta|-delta>")
                     return
                 }
                 val id = args[3]
-                val value = args[4].toIntOrNull() ?: run {
-                    sender.sendMessage("Value must be an integer.")
+                val parsed = parseCapacityValue(args[4]) ?: run {
+                    sender.sendMessage("Value must be an integer, or +N / -N to adjust.")
                     return
                 }
-                when (type) {
+                val current = when (type) {
                     "item" -> {
-                        if (configManager.getItems()[id] == null) {
+                        val item = configManager.getItems()[id] ?: run {
                             sender.sendMessage("Unknown item: $id")
                             return
                         }
-                        bagService.setItemCapacityOverride(target.uniqueId, id, value)
+                        capacityService.getItemCapacity(target.uniqueId, item)
                     }
                     "category" -> {
                         if (configManager.getCategories()[id] == null) {
                             sender.sendMessage("Unknown category: $id")
                             return
                         }
-                        bagService.setCategoryCapacityOverride(target.uniqueId, id, value)
+                        capacityService.getCategoryCapacity(target.uniqueId, id)
                     }
+                    else -> return
                 }
-                sender.sendMessage("Set $type capacity for ${target.name}: $id = $value")
+                val newValue = resolveCapacityValue(current, parsed)
+                when (type) {
+                    "item" -> bagService.setItemCapacityOverride(target.uniqueId, id, newValue)
+                    "category" -> bagService.setCategoryCapacityOverride(target.uniqueId, id, newValue)
+                }
+                sender.sendMessage(capacityFeedback(type, target.name, id, current, newValue, parsed))
             }
             else -> {
                 sender.sendMessage("Type must be item, category, or global.")
@@ -142,6 +148,56 @@ class BohCommand(
             }
         }
         if (target.isOnline) menuService.refreshOpenMenu(target)
+    }
+
+    /**
+     * Absolute integer sets capacity; leading `+` or `-` adjusts from the player's current value
+     * (override if set, otherwise config default).
+     */
+    private sealed interface CapacityValue {
+        data class Absolute(val value: Int) : CapacityValue
+        data class Relative(val delta: Int) : CapacityValue
+    }
+
+    private fun parseCapacityValue(raw: String): CapacityValue? {
+        val trimmed = raw.trim()
+        if (trimmed.startsWith("+")) {
+            return trimmed.drop(1).trim().toIntOrNull()?.let { CapacityValue.Relative(it) }
+        }
+        if (trimmed.startsWith("-")) {
+            return trimmed.toIntOrNull()?.let { CapacityValue.Relative(it) }
+        }
+        return trimmed.toIntOrNull()?.let { CapacityValue.Absolute(it) }
+    }
+
+    private fun resolveCapacityValue(current: Int, parsed: CapacityValue): Int = when (parsed) {
+        is CapacityValue.Absolute -> parsed.value.coerceAtLeast(0)
+        is CapacityValue.Relative -> (current + parsed.delta).coerceAtLeast(0)
+    }
+
+    private fun capacityFeedback(
+        kind: String,
+        playerName: String,
+        id: String?,
+        previous: Int,
+        newValue: Int,
+        parsed: CapacityValue,
+    ): String = when (parsed) {
+        is CapacityValue.Absolute -> {
+            if (id != null) {
+                "Set $kind capacity for $playerName: $id = $newValue (was $previous)"
+            } else {
+                "Set $kind capacity for $playerName: $newValue (was $previous)"
+            }
+        }
+        is CapacityValue.Relative -> {
+            val deltaText = if (parsed.delta >= 0) "+${parsed.delta}" else parsed.delta.toString()
+            if (id != null) {
+                "Adjusted $kind capacity for $playerName: $id $deltaText → $newValue (was $previous)"
+            } else {
+                "Adjusted $kind capacity for $playerName: $deltaText → $newValue (was $previous)"
+            }
+        }
     }
 
     private fun handleGiveTake(sender: CommandSender, args: Array<out String>, add: Boolean) {

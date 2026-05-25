@@ -96,7 +96,7 @@ class SneakyBagOfHolding : JavaPlugin() {
     }
 
     private fun registerCommands() {
-        val handler = BohCommand(configManager, menuService, bagService, playerDataStore) { reloadAll() }
+        val handler = BohCommand(configManager, menuService, bagService, capacityService, playerDataStore) { reloadAll() }
         val aliases = configManager.getSettings().commandAliases
             .filter { !it.equals("boh", ignoreCase = true) }
         registerCommand(
