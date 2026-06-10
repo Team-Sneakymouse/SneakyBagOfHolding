@@ -414,7 +414,7 @@ class MenuService(
                 scheduleMenuRefresh(player, holder)
             }
             click == ClickType.SHIFT_LEFT -> {
-                val withdrawn = bagService.withdraw(player, itemId, 99)
+                val withdrawn = bagService.withdraw(player, itemId, bagService.maxStackSize(itemId))
                 if (withdrawn > 0) configManager.getSettings().audio.withdraw?.play(player)
                 scheduleMenuRefresh(player, holder)
             }
@@ -424,7 +424,7 @@ class MenuService(
                 scheduleMenuRefresh(player, holder)
             }
             click == ClickType.SHIFT_RIGHT -> {
-                val deposited = bagService.deposit(player, itemId, 99)
+                val deposited = bagService.deposit(player, itemId, bagService.maxStackSize(itemId))
                 if (deposited > 0) configManager.getSettings().audio.deposit?.play(player)
                 scheduleMenuRefresh(player, holder)
             }

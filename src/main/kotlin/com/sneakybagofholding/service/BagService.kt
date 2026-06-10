@@ -4,7 +4,7 @@ import com.sneakybagofholding.capacity.CapacityService
 import com.sneakybagofholding.registry.ItemRegistry
 import com.sneakybagofholding.registry.MagicItemResolver
 import com.sneakybagofholding.storage.PlayerDataStore
-import org.bukkit.Sound
+import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 import java.util.UUID
@@ -35,6 +35,9 @@ class BagService(
         playerDataStore.markDirty(player)
         return removed
     }
+
+    /** Max stack size for [itemId], from the MagicSpells item or config fallback material. */
+    fun maxStackSize(itemId: String): Int = prototypeStack(itemId)?.maxStackSize ?: 64
 
     /**
      * Withdraws up to [amount] of [itemId] into the player's inventory.
@@ -149,11 +152,19 @@ class BagService(
         return maxAmount - remaining
     }
 
+    private fun prototypeStack(itemId: String): ItemStack? {
+        magicItemResolver.createItem(itemId, 1)?.let { return it }
+        val display = itemRegistry.getItem(itemId)?.display ?: return null
+        val material = Material.matchMaterial((display.material ?: "PAPER").uppercase()) ?: Material.PAPER
+        return ItemStack(material, 1)
+    }
+
     private fun giveToInventory(player: Player, itemId: String, maxAmount: Int): Int {
         var remaining = maxAmount
         while (remaining > 0) {
-            val stackSize = minOf(remaining, 64)
-            val stack = magicItemResolver.createItem(itemId, stackSize) ?: break
+            val stack = prototypeStack(itemId) ?: break
+            val stackSize = minOf(remaining, stack.maxStackSize)
+            stack.amount = stackSize
             val leftover = player.inventory.addItem(stack)
             val notAdded = leftover.values.firstOrNull()?.amount ?: 0
             val added = stackSize - notAdded
