@@ -27,6 +27,7 @@ data class AudioSettings(
     val withdraw: SoundConfig? = null,
     val deposit: SoundConfig? = null,
     val toggleAutoloot: SoundConfig? = null,
+    val navigate: SoundConfig? = null,
     val pickup: SoundConfig? = null
 )
 

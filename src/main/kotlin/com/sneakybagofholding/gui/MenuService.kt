@@ -314,6 +314,7 @@ class MenuService(
 
         val slot = event.rawSlot
         val category = categoryAtMainMenuSlot(slot) ?: return
+        configManager.getSettings().audio.navigate?.play(player)
         Bukkit.getScheduler().runTask(plugin, Runnable { openCategoryMenu(player, category.id) })
     }
 
@@ -375,17 +376,20 @@ class MenuService(
         when (slot) {
             CategoryMenuLayout.PREV_TAB_SLOT -> {
                 val target = categoryNavigation.resolvePrevious(view) ?: return
+                configManager.getSettings().audio.navigate?.play(player)
                 Bukkit.getScheduler().runTask(plugin, Runnable {
                     openCategoryMenu(player, target.categoryId, target.pageIndex)
                 })
                 return
             }
             CategoryMenuLayout.BACK_SLOT -> {
+                configManager.getSettings().audio.navigate?.play(player)
                 Bukkit.getScheduler().runTask(plugin, Runnable { openMainMenu(player) })
                 return
             }
             CategoryMenuLayout.NEXT_TAB_SLOT -> {
                 val target = categoryNavigation.resolveNext(view) ?: return
+                configManager.getSettings().audio.navigate?.play(player)
                 Bukkit.getScheduler().runTask(plugin, Runnable {
                     openCategoryMenu(player, target.categoryId, target.pageIndex)
                 })

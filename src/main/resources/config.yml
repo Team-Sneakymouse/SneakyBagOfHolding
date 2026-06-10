@@ -56,6 +56,9 @@ settings:
     toggle-autoloot:
       sound: "lom:computer.open"
       pitch: 1.0
+    navigate:
+      sound: "lom:ui.button.click"
+      pitch: 1.0
     pickup:
       sound: "minecraft:entity.item.pickup"
       pitch: "0.9-1.1"

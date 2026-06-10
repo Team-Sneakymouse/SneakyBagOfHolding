@@ -115,6 +115,7 @@ class ConfigManager(private val plugin: SneakyBagOfHolding) {
             withdraw = parseSound("withdraw"),
             deposit = parseSound("deposit"),
             toggleAutoloot = parseSound("toggle-autoloot"),
+            navigate = parseSound("navigate"),
             pickup = parseSound("pickup")
         )
     }
