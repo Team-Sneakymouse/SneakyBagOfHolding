@@ -35,9 +35,9 @@ class AutoPickupListener(
         }
 
         val item = itemEntity.itemStack
-        val itemId = itemRegistry.resolveItemId(item) ?: return
+        if (itemRegistry.resolveItemId(item) == null) return
         val amount = item.amount
-        val absorbed = bagService.absorbPickup(player, itemId, amount)
+        val absorbed = bagService.absorbPickup(player, item)
         if (absorbed <= 0) return
         
         settings.audio.pickup?.play(player)

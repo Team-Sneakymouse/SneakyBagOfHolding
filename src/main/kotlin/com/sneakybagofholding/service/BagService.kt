@@ -4,6 +4,7 @@ import com.sneakybagofholding.capacity.CapacityService
 import com.sneakybagofholding.registry.ItemRegistry
 import com.sneakybagofholding.registry.MagicItemResolver
 import com.sneakybagofholding.storage.PlayerDataStore
+import com.sneakybagofholding.util.ItemStackStorage
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
@@ -95,7 +96,7 @@ class BagService(
      * Deposits from a specific stack (shift-clicked slot). Does not scan the rest of the inventory.
      */
     fun depositFromStack(player: Player, stack: ItemStack): Int {
-        if (stack.amount <= 0) return 0
+        if (stack.amount <= 0 || !ItemStackStorage.isStorable(stack)) return 0
         val itemId = itemRegistry.resolveItemId(stack) ?: return 0
         return addToStoredFromStack(player, itemId, stack)
     }
@@ -104,7 +105,7 @@ class BagService(
      * Deposits from the item on the player's cursor (click or drag onto the menu).
      */
     fun depositFromCursor(player: Player, cursor: ItemStack): Int {
-        if (cursor.type.isAir) return 0
+        if (cursor.type.isAir || !ItemStackStorage.isStorable(cursor)) return 0
         val itemId = itemRegistry.resolveItemId(cursor) ?: return 0
         return addToStoredFromStack(player, itemId, cursor)
     }
@@ -122,10 +123,13 @@ class BagService(
     }
 
     /**
-     * Auto-pickup: adds [pickupAmount] to storage if enabled and room exists.
+     * Auto-pickup: adds items from [stack] to storage if enabled and room exists.
      * @return amount absorbed into the bag
      */
-    fun absorbPickup(player: Player, itemId: String, pickupAmount: Int): Int {
+    fun absorbPickup(player: Player, stack: ItemStack): Int {
+        if (!ItemStackStorage.isStorable(stack)) return 0
+        val itemId = itemRegistry.resolveItemId(stack) ?: return 0
+        val pickupAmount = stack.amount
         val data = playerDataStore.get(player)
         if (!data.isAutopickupEnabled(itemId)) return 0
         val remaining = capacityService.remaining(player, itemId)
@@ -142,6 +146,7 @@ class BagService(
         for (i in contents.indices) {
             val stack = contents[i] ?: continue
             if (itemRegistry.resolveItemId(stack) != itemId) continue
+            if (!ItemStackStorage.isStorable(stack)) continue
             val take = minOf(stack.amount, remaining)
             stack.amount -= take
             if (stack.amount <= 0) contents[i] = null
