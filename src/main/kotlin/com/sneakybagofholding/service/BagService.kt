@@ -59,6 +59,12 @@ class BagService(
         return given
     }
 
+    /** Read-only stored count for [itemId]; returns `0` when the item is not registered. */
+    fun getStoredAmount(player: Player, itemId: String): Int {
+        if (!itemRegistry.isRegistered(itemId)) return 0
+        return capacityService.getStored(player.uniqueId, itemId)
+    }
+
     /**
      * Withdraws exactly [amount] of [itemId] as an [ItemStack] without touching player inventory.
      * All-or-nothing: storage is unchanged unless the full amount can be produced.

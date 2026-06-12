@@ -9,4 +9,7 @@ internal class BagOfHoldingApiImpl(
 
     override fun withdrawAsItemStack(player: Player, itemId: String, amount: Int): WithdrawResult =
         bagService.withdrawAsItemStack(player, itemId, amount)
+
+    override fun getStoredAmount(player: Player, itemId: String): Int =
+        bagService.getStoredAmount(player, itemId)
 }

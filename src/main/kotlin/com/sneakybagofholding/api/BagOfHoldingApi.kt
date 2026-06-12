@@ -19,6 +19,14 @@ interface BagOfHoldingApi {
      */
     fun withdrawAsItemStack(player: Player, itemId: String, amount: Int): WithdrawResult
 
+    /**
+     * Returns how many of [itemId] [player] currently has stored in their bag.
+     *
+     * Returns `0` when [itemId] is not registered in SneakyBagOfHolding config.
+     * Read-only: does not modify bag storage or player inventory.
+     */
+    fun getStoredAmount(player: Player, itemId: String): Int
+
     companion object {
         @JvmStatic
         fun get(): BagOfHoldingApi? =
