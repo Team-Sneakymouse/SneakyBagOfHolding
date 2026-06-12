@@ -1,5 +1,7 @@
 package com.sneakybagofholding
 
+import com.sneakybagofholding.api.BagOfHoldingApi
+import com.sneakybagofholding.api.BagOfHoldingApiImpl
 import com.sneakybagofholding.capacity.CapacityService
 import com.sneakybagofholding.commands.BohCommand
 import com.sneakybagofholding.config.ConfigManager
@@ -13,6 +15,7 @@ import com.sneakybagofholding.registry.ItemRegistry
 import com.sneakybagofholding.registry.MagicItemResolver
 import com.sneakybagofholding.service.BagService
 import com.sneakybagofholding.storage.PlayerDataStore
+import org.bukkit.plugin.ServicePriority
 import org.bukkit.plugin.java.JavaPlugin
 
 class SneakyBagOfHolding : JavaPlugin() {
@@ -45,6 +48,12 @@ class SneakyBagOfHolding : JavaPlugin() {
         itemRegistry = ItemRegistry(configManager, magicItemResolver)
         capacityService = CapacityService(configManager, itemRegistry, playerDataStore)
         bagService = BagService(itemRegistry, magicItemResolver, capacityService, playerDataStore)
+        Bukkit.getServicesManager().register(
+            BagOfHoldingApi::class.java,
+            BagOfHoldingApiImpl(bagService),
+            this,
+            ServicePriority.Normal,
+        )
         menuService = MenuService(
             configManager,
             itemRegistry,
@@ -75,6 +84,7 @@ class SneakyBagOfHolding : JavaPlugin() {
     }
 
     override fun onDisable() {
+        Bukkit.getServicesManager().unregisterAll(this)
         menuService.closeAllMenus()
         playerDataStore.saveDirty()
         logger.info("SneakyBagOfHolding disabled.")

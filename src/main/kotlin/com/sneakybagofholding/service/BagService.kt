@@ -1,5 +1,7 @@
 package com.sneakybagofholding.service
 
+import com.sneakybagofholding.api.WithdrawFailureReason
+import com.sneakybagofholding.api.WithdrawResult
 import com.sneakybagofholding.capacity.CapacityService
 import com.sneakybagofholding.registry.ItemRegistry
 import com.sneakybagofholding.registry.MagicItemResolver
@@ -55,6 +57,25 @@ class BagService(
         data.setStored(itemId, stored - given)
         playerDataStore.markDirty(player)
         return given
+    }
+
+    /**
+     * Withdraws exactly [amount] of [itemId] as an [ItemStack] without touching player inventory.
+     * All-or-nothing: storage is unchanged unless the full amount can be produced.
+     */
+    fun withdrawAsItemStack(player: Player, itemId: String, amount: Int): WithdrawResult {
+        if (amount <= 0) return WithdrawResult.Failure(WithdrawFailureReason.INVALID_AMOUNT)
+        if (!itemRegistry.isRegistered(itemId)) {
+            return WithdrawResult.Failure(WithdrawFailureReason.UNKNOWN_ITEM)
+        }
+        val data = playerDataStore.get(player)
+        val stored = data.getStored(itemId)
+        if (stored < amount) return WithdrawResult.Failure(WithdrawFailureReason.INSUFFICIENT_STORED)
+        val stack = createItemStack(itemId, amount)
+            ?: return WithdrawResult.Failure(WithdrawFailureReason.ITEM_CREATION_FAILED)
+        data.setStored(itemId, stored - amount)
+        playerDataStore.markDirty(player)
+        return WithdrawResult.Success(stack)
     }
 
     fun toggleAutopickup(player: Player, itemId: String): Boolean {
@@ -157,11 +178,13 @@ class BagService(
         return maxAmount - remaining
     }
 
-    private fun prototypeStack(itemId: String): ItemStack? {
-        magicItemResolver.createItem(itemId, 1)?.let { return it }
+    private fun prototypeStack(itemId: String): ItemStack? = createItemStack(itemId, 1)
+
+    private fun createItemStack(itemId: String, amount: Int): ItemStack? {
+        magicItemResolver.createItem(itemId, amount)?.let { return it }
         val display = itemRegistry.getItem(itemId)?.display ?: return null
         val material = Material.matchMaterial((display.material ?: "PAPER").uppercase()) ?: Material.PAPER
-        return ItemStack(material, 1)
+        return ItemStack(material, amount)
     }
 
     private fun giveToInventory(player: Player, itemId: String, maxAmount: Int): Int {
