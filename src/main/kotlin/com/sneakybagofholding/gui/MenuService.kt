@@ -80,9 +80,9 @@ class MenuService(
     fun closeAllMenus() {
         for (uuid in openMenus.keys.toList()) {
             val player = Bukkit.getPlayer(uuid) ?: continue
+            openMenus.remove(uuid)
             player.closeInventory()
         }
-        openMenus.clear()
     }
 
     fun refreshOpenMenu(player: Player) {
@@ -466,11 +466,15 @@ class MenuService(
     @EventHandler
     fun onInventoryClose(event: InventoryCloseEvent) {
         val player = event.player as? Player ?: return
-        if (event.inventory.holder !is BagInventoryHolder) return
+        val closedHolder = event.inventory.holder as? BagInventoryHolder ?: return
+        val wasTracked = openMenus.containsKey(player.uniqueId)
         // Defer: replacing one BOH screen with another also closes the old inventory first.
         Bukkit.getScheduler().runTask(plugin, Runnable {
-            if (player.openInventory.topInventory.holder !is BagInventoryHolder) {
-                openMenus.remove(player.uniqueId)
+            if (player.openInventory.topInventory.holder is BagInventoryHolder) return@Runnable
+            if (!wasTracked) return@Runnable
+            openMenus.remove(player.uniqueId)
+            if (closedHolder is BagInventoryHolder.CategoryMenu) {
+                openMainMenu(player)
             }
         })
     }
