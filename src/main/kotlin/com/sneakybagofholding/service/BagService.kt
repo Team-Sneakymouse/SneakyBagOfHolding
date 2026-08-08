@@ -66,6 +66,39 @@ class BagService(
     }
 
     /**
+     * Resolves [stack] to a configured item id when the stack is storable and registered.
+     */
+    fun resolveItemIdForApi(stack: ItemStack): String? {
+        if (stack.amount <= 0 || !ItemStackStorage.isStorable(stack)) return null
+        return itemRegistry.resolveItemId(stack)
+    }
+
+    fun isAutopickupEnabled(player: Player, itemId: String): Boolean {
+        if (!itemRegistry.isRegistered(itemId)) return false
+        return playerDataStore.get(player).isAutopickupEnabled(itemId)
+    }
+
+    fun getRemainingCapacity(player: Player, itemId: String): Int {
+        if (!itemRegistry.isRegistered(itemId)) return 0
+        return capacityService.remaining(player, itemId)
+    }
+
+    /**
+     * Adds up to [amount] of [itemId] directly into storage without touching inventory.
+     * @return amount actually deposited
+     */
+    fun depositDirect(player: Player, itemId: String, amount: Int): Int {
+        if (amount <= 0 || !itemRegistry.isRegistered(itemId)) return 0
+        val remaining = capacityService.remaining(player, itemId)
+        if (remaining <= 0) return 0
+        val toDeposit = amount.coerceAtMost(remaining)
+        val data = playerDataStore.get(player)
+        data.setStored(itemId, data.getStored(itemId) + toDeposit)
+        playerDataStore.markDirty(player)
+        return toDeposit
+    }
+
+    /**
      * Withdraws exactly [amount] of [itemId] as an [ItemStack] without touching player inventory.
      * All-or-nothing: storage is unchanged unless the full amount can be produced.
      */

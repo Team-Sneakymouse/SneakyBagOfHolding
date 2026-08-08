@@ -166,7 +166,77 @@ Player overrides via `/boh capacity` replace the config default for that compone
 ./gradlew build
 ```
 
-Output JAR: `build/libs/SneakyBagOfHolding-1.0.0.jar`
+Plugin JAR (fat, for the Paper plugins folder): `build/libs/SneakyBagOfHolding-1.0.0.jar`
+
+Library JAR (thin, for Maven): `build/libs/sneakybagofholding-1.0.0.jar`
+
+## Publishing to Maven Central
+
+Artifacts are published under the **`io.github.team-sneakymouse`** namespace (`io.github.team-sneakymouse:sneakybagofholding`). Kotlin package names remain `com.sneakybagofholding`.
+
+### 1. What to configure before publishing
+
+Complete these steps once per organization / machine (same Sonatype namespace and GPG key as MagicSpells):
+
+1. **Sonatype Central Portal account** — Register at [central.sonatype.com](https://central.sonatype.com/).
+2. **Namespace verification** — Ensure `io.github.team-sneakymouse` is verified under [Publishing → Namespaces](https://central.sonatype.com/publishing/namespaces).
+3. **User token** — Generate a token at [central.sonatype.com/usertoken](https://central.sonatype.com/usertoken).
+4. **GPG signing key** — Maven Central requires signed artifacts. List keys with `gpg --list-secret-keys --keyid-format=long`, then in **`.gradle/gradle.properties`** (gitignored; see [`gradle.properties.example`](gradle.properties.example)):
+
+   ```properties
+   signing.keyId=38122A0D
+   signing.gnupg.keyName=38122A0D
+   signing.password=your-gpg-passphrase
+   signing.gnupg.useGpgCmd=true
+   mavenCentralUsername=...
+   mavenCentralPassword=...
+   ```
+
+   You can reuse the same `.gradle/gradle.properties` values from the MagicSpells repo.
+
+5. **Version** — Set `version` in [`gradle.properties`](gradle.properties) (e.g. `1.0.0`). It must **not** end with `-SNAPSHOT` for a release on Maven Central.
+
+**What is published:** plain library JAR, sources, Javadoc, and POM — not the fat plugin JAR from `./gradlew build`. Published POMs only declare Maven Central–safe dependencies (Kotlin, Gson). `paper-api` and `magicspells-core` stay `compileOnly` for consumers to add themselves.
+
+### 2. Commands to publish
+
+Dry-run locally (no Sonatype or GPG credentials required):
+
+```bash
+./gradlew publishToMavenLocal
+```
+
+Before each upload, **bump `version` in [`gradle.properties`](gradle.properties)** if that version was already published.
+
+Publish to Maven Central (upload + automatic release):
+
+```bash
+chmod +x scripts/publish-maven-central.sh
+./scripts/publish-maven-central.sh
+```
+
+The script loads Sonatype tokens from `.gradle/gradle.properties` and runs `publishToMavenCentral`. If tokens are already in `~/.gradle/gradle.properties`, you can run `./gradlew publishToMavenCentral` instead.
+
+**After a successful upload:** open [Central Portal → Deployments](https://central.sonatype.com/publishing/deployments). Wait until the component is **Validated**, then click **Publish** if you did not use automatic release. Artifacts usually appear on [Maven Central](https://central.sonatype.com/search) within 10–30 minutes.
+
+Every successful Maven Central release **locks that version forever**. If publish fails partway through, or Sonatype reports the component already exists, increment `version` and publish again.
+
+### 3. Using published artifacts in other projects
+
+**Gradle** (Kotlin DSL):
+
+```kotlin
+repositories {
+    mavenCentral()
+    maven("https://repo.papermc.io/repository/maven-public/")
+}
+
+dependencies {
+    compileOnly("io.papermc.paper:paper-api:1.21.4-R0.1-SNAPSHOT")
+    compileOnly("io.github.team-sneakymouse:magicspells-core:4.0-Beta-14")
+    compileOnly("io.github.team-sneakymouse:sneakybagofholding:1.0.0")
+}
+```
 
 ## Data files
 

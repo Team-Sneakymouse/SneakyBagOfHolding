@@ -1,0 +1,26 @@
+# Copy to .gradle/gradle.properties in this repo (gitignored).
+# Never commit real credentials.
+#
+# Release version is set in the project gradle.properties (version = ...), not here.
+# Maven Central releases must not use a -SNAPSHOT version.
+
+# --- Maven Central (Sonatype Central Portal user token) ---
+# https://central.sonatype.com/usertoken
+mavenCentralUsername=YOUR_SONATYPE_TOKEN_USERNAME
+mavenCentralPassword=YOUR_SONATYPE_TOKEN_PASSWORD
+
+# --- GPG signing (recommended: use the gpg binary + your existing keyring) ---
+# gpg --list-secret-keys --keyid-format=long
+# Team Sneakymouse / Maven Central key (example): ...EBF4CD1B38122A0D -> signing.keyId=38122A0D
+# With useGpgCmd=true, Gradle uses signing.gnupg.keyName for gpg — NOT signing.keyId alone.
+signing.keyId=38122A0D
+signing.gnupg.keyName=38122A0D
+signing.password=YOUR_GPG_KEY_PASSPHRASE
+signing.gnupg.useGpgCmd=true
+
+# Alternative: legacy secring file (export with gpg --export-secret-keys KEY_ID > ~/.gnupg/secring.gpg)
+# signing.secretKeyRingFile=/home/YOU/.gnupg/secring.gpg
+# signing.gnupg.useGpgCmd=false
+
+# Alternative: in-memory key for CI (paste armored key with real line breaks, or use \n escapes)
+# signing.inMemoryKey=-----BEGIN PGP PRIVATE KEY BLOCK-----\n...
