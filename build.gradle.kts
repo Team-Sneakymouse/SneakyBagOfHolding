@@ -52,7 +52,7 @@ tasks {
     // Fat plugin JAR for the Paper plugins folder (kotlin-stdlib + gson bundled).
     val pluginJar by registering(Jar::class) {
         archiveClassifier.set("plugin")
-        archiveFileName.set("SneakyBagOfHolding-${project.version}.jar")
+        archiveFileName.set("SneakyBagOfHolding.jar")
         from(sourceSets["main"].output)
         from(configurations.runtimeClasspath.get().map { if (it.isDirectory) it else zipTree(it) })
         duplicatesStrategy = DuplicatesStrategy.EXCLUDE
