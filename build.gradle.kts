@@ -18,13 +18,17 @@ repositories {
 
 dependencies {
     compileOnly("io.papermc.paper:paper-api:1.21.4-R0.1-SNAPSHOT")
-    compileOnly("io.github.team-sneakymouse:magicspells-core:4.0-Beta-14")
+    compileOnly("io.github.team-sneakymouse:magicspells-core:4.0-Beta-16")
     implementation("org.jetbrains.kotlin:kotlin-stdlib:1.9.21")
     implementation("com.google.code.gson:gson:2.10.1")
 }
 
 kotlin {
     jvmToolchain(21)
+}
+
+runPaper {
+    disablePluginJarDetection()
 }
 
 base {
@@ -52,7 +56,7 @@ tasks {
     // Fat plugin JAR for the Paper plugins folder (kotlin-stdlib + gson bundled).
     val pluginJar by registering(Jar::class) {
         archiveClassifier.set("plugin")
-        archiveFileName.set("SneakyBagOfHolding.jar")
+        archiveFileName.set("${rootProject.name}-${project.version}.jar")
         from(sourceSets["main"].output)
         from(configurations.runtimeClasspath.get().map { if (it.isDirectory) it else zipTree(it) })
         duplicatesStrategy = DuplicatesStrategy.EXCLUDE
@@ -65,6 +69,7 @@ tasks {
 
     runServer {
         minecraftVersion("1.21.4")
+        pluginJars.from(pluginJar.flatMap { it.archiveFile })
     }
 
     withType<Javadoc>().configureEach {

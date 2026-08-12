@@ -28,7 +28,7 @@ object ItemStackParser {
             ItemMetaText.setLore(meta, lore)
         }
         if (section.contains("custom-model-data")) {
-            meta.setCustomModelData(section.getInt("custom-model-data"))
+            CustomModelDataSupport.applyLegacyInt(meta, section.getInt("custom-model-data"))
         }
         val hideTooltip = when {
             section.contains("hide-tooltip") -> section.getBoolean("hide-tooltip")
@@ -45,7 +45,7 @@ object ItemStackParser {
     fun applyCustomModelData(stack: ItemStack, customModelData: Int?) {
         if (customModelData == null) return
         val meta = stack.itemMeta ?: return
-        meta.setCustomModelData(customModelData)
+        CustomModelDataSupport.applyLegacyInt(meta, customModelData)
         stack.itemMeta = meta
     }
 }

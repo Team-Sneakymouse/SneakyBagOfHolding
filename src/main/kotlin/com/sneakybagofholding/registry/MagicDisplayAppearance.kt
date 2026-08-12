@@ -9,5 +9,8 @@ import org.bukkit.Material
 data class MagicDisplayAppearance(
     val material: Material,
     val displayName: String?,
-    val customModelData: Int?,
+    /** Opaque MagicSpells [CustomModelDataValues], when the item defines custom model data. */
+    val customModelDataValues: Any? = null,
+    /** Legacy integer CMD when MagicSpells still stores an [Int] (pre-CustomModelDataValues). */
+    val legacyCustomModelData: Int? = null,
 )

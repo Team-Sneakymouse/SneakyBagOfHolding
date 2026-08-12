@@ -6,6 +6,7 @@ import com.sneakybagofholding.config.ItemDisplayDefinition
 import com.sneakybagofholding.registry.MagicDisplayAppearance
 import com.sneakybagofholding.registry.MagicItemResolver
 import com.sneakybagofholding.storage.PlayerDataStore
+import com.sneakybagofholding.util.CustomModelDataSupport
 import com.sneakybagofholding.util.ItemMetaText
 import com.sneakybagofholding.util.ItemStackParser
 import org.bukkit.Material
@@ -71,17 +72,26 @@ class ItemDisplayBuilder(
         display: ItemDisplayDefinition?,
         autopickupEnabled: Boolean,
     ) {
-        val baseCmd = appearance?.customModelData ?: display?.customModelData
-        val cmd = when {
+        val overrideCmd = when {
             !autopickupEnabled && display?.autopickupOffCustomModelData != null ->
                 display.autopickupOffCustomModelData
             autopickupEnabled && display?.autopickupOnCustomModelData != null ->
                 display.autopickupOnCustomModelData
-            else -> baseCmd
+            else -> null
         }
-        if (cmd != null) {
-            meta.setCustomModelData(cmd)
+        if (overrideCmd != null) {
+            CustomModelDataSupport.applyLegacyInt(meta, overrideCmd)
+            return
         }
+        appearance?.customModelDataValues?.let { values ->
+            magicItemResolver.applyCustomModelData(meta, values)
+            return
+        }
+        appearance?.legacyCustomModelData?.let { legacy ->
+            CustomModelDataSupport.applyLegacyInt(meta, legacy)
+            return
+        }
+        display?.customModelData?.let { CustomModelDataSupport.applyLegacyInt(meta, it) }
     }
 
     private fun applyAutopickupGlow(meta: ItemMeta, autopickupEnabled: Boolean) {

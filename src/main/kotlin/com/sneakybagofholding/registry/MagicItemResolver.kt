@@ -32,6 +32,10 @@ class MagicItemResolver(private val plugin: SneakyBagOfHolding) {
     private var attrName: Any? = null
     private var attrCustomModelData: Any? = null
 
+    private var customModelDataValuesClass: Class<*>? = null
+    private var customModelDataApplyTo: Method? = null
+    private var customModelDataOfLegacyInt: Method? = null
+
     /**
      * Binds to MagicSpells when that plugin is present and enabled.
      * @return true if API methods were resolved successfully
@@ -48,6 +52,9 @@ class MagicItemResolver(private val plugin: SneakyBagOfHolding) {
         attrType = null
         attrName = null
         attrCustomModelData = null
+        customModelDataValuesClass = null
+        customModelDataApplyTo = null
+        customModelDataOfLegacyInt = null
 
         val ms = Bukkit.getPluginManager().getPlugin("MagicSpells") ?: run {
             plugin.logger.warning("MagicSpells not found — item matching and giving disabled.")
@@ -95,13 +102,34 @@ class MagicItemResolver(private val plugin: SneakyBagOfHolding) {
                 magicItemAttributeClass
             )
 
+            val cmdValuesClass = try {
+                Class.forName(
+                    "com.nisovin.magicspells.util.magicitems.CustomModelDataValues",
+                    true,
+                    loader
+                )
+            } catch (_: ClassNotFoundException) {
+                null
+            }
+            if (cmdValuesClass != null) {
+                customModelDataValuesClass = cmdValuesClass
+                customModelDataApplyTo = cmdValuesClass.getMethod(
+                    "applyTo",
+                    org.bukkit.inventory.meta.ItemMeta::class.java
+                )
+                customModelDataOfLegacyInt = cmdValuesClass.getMethod(
+                    "ofLegacyInt",
+                    Int::class.javaPrimitiveType
+                )
+            }
+
             @Suppress("UNCHECKED_CAST")
             val enumConstants = magicItemAttributeClass.enumConstants as Array<Any>
             for (constant in enumConstants) {
-                when (constant.toString()) {
-                    "type" -> attrType = constant
-                    "name" -> attrName = constant
-                    "custom-model-data" -> attrCustomModelData = constant
+                when ((constant as Enum<*>).name) {
+                    "TYPE" -> attrType = constant
+                    "NAME" -> attrName = constant
+                    "CUSTOM_MODEL_DATA" -> attrCustomModelData = constant
                 }
             }
 
@@ -128,10 +156,37 @@ class MagicItemResolver(private val plugin: SneakyBagOfHolding) {
         val displayName = attrName?.let { attr ->
             getDataAttribute(data, attr) as? Component
         }?.let { componentToConfigString(it) }
-        val customModelData = attrCustomModelData?.let { attr ->
-            getDataAttribute(data, attr) as? Int
+        val rawCmd = attrCustomModelData?.let { attr -> getDataAttribute(data, attr) }
+        val customModelDataValues = resolveCustomModelDataValues(rawCmd)
+        val legacyCustomModelData = if (customModelDataValues == null && rawCmd is Int) rawCmd else null
+        return MagicDisplayAppearance(material, displayName, customModelDataValues, legacyCustomModelData)
+    }
+
+    /**
+     * Applies MagicSpells custom model data to a GUI icon.
+     */
+    fun applyCustomModelData(meta: org.bukkit.inventory.meta.ItemMeta, values: Any) {
+        if (!available || customModelDataApplyTo == null) return
+        if (customModelDataValuesClass?.isInstance(values) != true) return
+        try {
+            customModelDataApplyTo!!.invoke(values, meta)
+        } catch (e: ReflectiveOperationException) {
+            plugin.logger.warning("Failed to apply MagicSpells custom model data: ${e.message}")
         }
-        return MagicDisplayAppearance(material, displayName, customModelData)
+    }
+
+    private fun resolveCustomModelDataValues(raw: Any?): Any? {
+        if (raw == null) return null
+        val cmdClass = customModelDataValuesClass ?: return null
+        if (cmdClass.isInstance(raw)) return raw
+        if (raw is Int && customModelDataOfLegacyInt != null) {
+            return try {
+                customModelDataOfLegacyInt!!.invoke(null, raw)
+            } catch (_: ReflectiveOperationException) {
+                null
+            }
+        }
+        return null
     }
 
     private fun getDataAttribute(data: Any, attribute: Any): Any? {
