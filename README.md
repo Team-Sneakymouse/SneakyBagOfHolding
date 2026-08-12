@@ -166,9 +166,9 @@ Player overrides via `/boh capacity` replace the config default for that compone
 ./gradlew build
 ```
 
-Plugin JAR (fat, for the Paper plugins folder): `build/libs/SneakyBagOfHolding-<version>.jar`
+Plugin JAR (fat, for the Paper plugins folder): `build/libs/SneakyBagOfHolding.jar`
 
-Library JAR (thin, for Maven — **do not** drop this into `plugins/`): `build/libs/sneakybagofholding-<version>.jar`
+Library JAR (thin, for Maven — **do not** drop this into `plugins/`): `build/libs/SneakyBagOfHolding.jar`
 
 ## Publishing to Maven Central
 
