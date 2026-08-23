@@ -7,6 +7,7 @@ package com.sneakybagofholding.config
  * @property categories Category ids this item belongs to; each adds its capacity bonus (plus global).
  * @property defaultCapacity Per-item base capacity (stacked with category bonuses).
  *   Falls back to [PluginSettings.defaultItemCapacity] when omitted in config.
+ * @property soulbound When true, withdrawn stacks get MagicSpells' soulbound_owner PDC for this player.
  * @property display Optional display overrides for the category browser.
  * @property legacyKey Lowercase id without dashes, used for MagicSpells variable migration.
  */
@@ -14,6 +15,7 @@ data class ItemDefinition(
     val id: String,
     val categories: List<String>,
     val defaultCapacity: Int,
+    val soulbound: Boolean = false,
     val display: ItemDisplayDefinition?
 ) {
     val legacyKey: String = id.lowercase().replace("-", "")

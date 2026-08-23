@@ -244,6 +244,7 @@ class ConfigManager(private val plugin: SneakyBagOfHolding) {
                 id = id,
                 categories = item.getStringList("categories"),
                 defaultCapacity = resolveCapacity(item, "default-capacity", globalItemDefault),
+                soulbound = item.getBoolean("soulbound", false),
                 display = display
             )
         }

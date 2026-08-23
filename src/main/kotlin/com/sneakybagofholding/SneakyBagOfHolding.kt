@@ -6,6 +6,7 @@ import com.sneakybagofholding.capacity.CapacityService
 import com.sneakybagofholding.commands.BohCommand
 import com.sneakybagofholding.config.ConfigManager
 import com.sneakybagofholding.gui.GuiDisplayMarker
+import com.sneakybagofholding.util.SoulboundTag
 import com.sneakybagofholding.gui.MenuService
 import com.sneakybagofholding.listener.AutoPickupListener
 import com.sneakybagofholding.listener.MagicSpellsHookListener
@@ -65,6 +66,7 @@ class SneakyBagOfHolding : JavaPlugin() {
 
         configManager.reload()
         GuiDisplayMarker.init(this)
+        SoulboundTag.init(this)
         registerCommands()
         server.pluginManager.registerEvents(menuService, this)
         server.pluginManager.registerEvents(AutoPickupListener(configManager, itemRegistry, bagService), this)
@@ -93,6 +95,7 @@ class SneakyBagOfHolding : JavaPlugin() {
     fun reloadAll() {
         configManager.reload()
         GuiDisplayMarker.init(this)
+        SoulboundTag.init(this)
         magicItemResolver.initialize()
         itemRegistry.reload()
         menuService.closeAllMenus()

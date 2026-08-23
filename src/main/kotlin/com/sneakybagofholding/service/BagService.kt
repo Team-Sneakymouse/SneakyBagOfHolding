@@ -7,6 +7,7 @@ import com.sneakybagofholding.registry.ItemRegistry
 import com.sneakybagofholding.registry.MagicItemResolver
 import com.sneakybagofholding.storage.PlayerDataStore
 import com.sneakybagofholding.util.ItemStackStorage
+import com.sneakybagofholding.util.SoulboundTag
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
@@ -110,7 +111,7 @@ class BagService(
         val data = playerDataStore.get(player)
         val stored = data.getStored(itemId)
         if (stored < amount) return WithdrawResult.Failure(WithdrawFailureReason.INSUFFICIENT_STORED)
-        val stack = createItemStack(itemId, amount)
+        val stack = createItemStack(itemId, amount, player)
             ?: return WithdrawResult.Failure(WithdrawFailureReason.ITEM_CREATION_FAILED)
         data.setStored(itemId, stored - amount)
         playerDataStore.markDirty(player)
@@ -217,21 +218,33 @@ class BagService(
         return maxAmount - remaining
     }
 
-    private fun prototypeStack(itemId: String): ItemStack? = createItemStack(itemId, 1)
+    private fun prototypeStack(itemId: String): ItemStack? = createItemStack(itemId, 1, null)
 
-    private fun createItemStack(itemId: String, amount: Int): ItemStack? {
-        magicItemResolver.createItem(itemId, amount)?.let { return it }
-        val display = itemRegistry.getItem(itemId)?.display ?: return null
-        val material = Material.matchMaterial((display.material ?: "PAPER").uppercase()) ?: Material.PAPER
-        return ItemStack(material, amount)
+    private fun createItemStack(itemId: String, amount: Int, owner: Player? = null): ItemStack? {
+        val stack = magicItemResolver.createItem(itemId, amount)
+            ?: run {
+                val display = itemRegistry.getItem(itemId)?.display ?: return null
+                val material = Material.matchMaterial((display.material ?: "PAPER").uppercase()) ?: Material.PAPER
+                ItemStack(material, amount)
+            }
+        applySoulboundIfConfigured(stack, itemId, owner)
+        return stack
+    }
+
+    private fun applySoulboundIfConfigured(stack: ItemStack, itemId: String, owner: Player?) {
+        if (owner == null) return
+        if (itemRegistry.getItem(itemId)?.soulbound != true) return
+        val meta = stack.itemMeta ?: return
+        SoulboundTag.apply(meta, owner.uniqueId)
+        stack.itemMeta = meta
     }
 
     private fun giveToInventory(player: Player, itemId: String, maxAmount: Int): Int {
         var remaining = maxAmount
         while (remaining > 0) {
-            val stack = prototypeStack(itemId) ?: break
-            val stackSize = minOf(remaining, stack.maxStackSize)
-            stack.amount = stackSize
+            val maxStack = prototypeStack(itemId)?.maxStackSize ?: break
+            val stackSize = minOf(remaining, maxStack)
+            val stack = createItemStack(itemId, stackSize, player) ?: break
             val leftover = player.inventory.addItem(stack)
             val notAdded = leftover.values.firstOrNull()?.amount ?: 0
             val added = stackSize - notAdded

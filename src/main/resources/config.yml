@@ -87,6 +87,8 @@ categories:
     # No menu-icon: contributes capacity only, not browsable from hub
 
 items:
+  # soulbound: true — withdrawn stacks get MagicSpells magicspells:soulbound_owner PDC (owner UUID).
+  # Item-level flag; applies in every category the item belongs to. Default: false.
   fish-catfish1:
     categories: [fish, crafting_reagent]
     # omits default-capacity → uses global item-capacity (1000)
