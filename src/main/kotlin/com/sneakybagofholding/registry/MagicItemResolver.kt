@@ -5,6 +5,7 @@ import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.minimessage.MiniMessage
 import org.bukkit.Bukkit
 import org.bukkit.Material
+import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 import org.bukkit.plugin.Plugin
 import java.lang.reflect.Method
@@ -22,6 +23,8 @@ class MagicItemResolver(private val plugin: SneakyBagOfHolding) {
     private var magicSpellsPlugin: Plugin? = null
 
     private var getItemByInternalName: Method? = null
+    private var getMagicItemByInternalName: Method? = null
+    private var magicItemCreateFor: Method? = null
     private var getMagicItemDataFromItemStack: Method? = null
     private var getMagicItemDataByInternalName: Method? = null
     private var magicItemDataMatches: Method? = null
@@ -44,6 +47,8 @@ class MagicItemResolver(private val plugin: SneakyBagOfHolding) {
         available = false
         magicSpellsPlugin = null
         getItemByInternalName = null
+        getMagicItemByInternalName = null
+        magicItemCreateFor = null
         getMagicItemDataFromItemStack = null
         getMagicItemDataByInternalName = null
         magicItemDataMatches = null
@@ -83,7 +88,19 @@ class MagicItemResolver(private val plugin: SneakyBagOfHolding) {
                 loader
             )
 
+            val magicItemClass = Class.forName(
+                "com.nisovin.magicspells.util.magicitems.MagicItem",
+                true,
+                loader
+            )
+
             getItemByInternalName = magicItemsClass.getMethod("getItemByInternalName", String::class.java)
+            getMagicItemByInternalName = magicItemsClass.getMethod("getMagicItemByInternalName", String::class.java)
+            magicItemCreateFor = magicItemClass.getMethod(
+                "createFor",
+                Player::class.java,
+                Int::class.javaPrimitiveType
+            )
             getMagicItemDataFromItemStack = magicItemsClass.getMethod(
                 "getMagicItemDataFromItemStack",
                 ItemStack::class.java
@@ -205,6 +222,7 @@ class MagicItemResolver(private val plugin: SneakyBagOfHolding) {
 
     /**
      * Returns a clone of the MagicSpells item for [internalName], or null if unavailable.
+     * Does not apply magic-item behaviors (soulbound, expiration, etc.).
      */
     fun createItem(internalName: String, amount: Int = 1): ItemStack? {
         if (!available) return null
@@ -215,6 +233,20 @@ class MagicItemResolver(private val plugin: SneakyBagOfHolding) {
             stack
         } catch (e: ReflectiveOperationException) {
             plugin.logger.warning("createItem failed for $internalName: ${e.message}")
+            null
+        }
+    }
+
+    /**
+     * Creates an item for [player], applying MagicSpells magic-item behaviors (e.g. soulbound).
+     */
+    fun createItemForPlayer(internalName: String, player: Player, amount: Int): ItemStack? {
+        if (!available || getMagicItemByInternalName == null || magicItemCreateFor == null) return null
+        return try {
+            val magicItem = getMagicItemByInternalName!!.invoke(null, internalName) ?: return null
+            magicItemCreateFor!!.invoke(magicItem, player, amount.coerceAtLeast(1)) as? ItemStack
+        } catch (e: ReflectiveOperationException) {
+            plugin.logger.warning("createItemForPlayer failed for $internalName: ${e.message}")
             null
         }
     }

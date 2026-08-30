@@ -221,17 +221,21 @@ class BagService(
     private fun prototypeStack(itemId: String): ItemStack? = createItemStack(itemId, 1, null)
 
     private fun createItemStack(itemId: String, amount: Int, owner: Player? = null): ItemStack? {
-        val stack = magicItemResolver.createItem(itemId, amount)
-            ?: run {
-                val display = itemRegistry.getItem(itemId)?.display ?: return null
-                val material = Material.matchMaterial((display.material ?: "PAPER").uppercase()) ?: Material.PAPER
-                ItemStack(material, amount)
-            }
-        applySoulboundIfConfigured(stack, itemId, owner)
+        val stack = when (owner) {
+            null -> magicItemResolver.createItem(itemId, amount)
+            else -> magicItemResolver.createItemForPlayer(itemId, owner, amount)
+                ?: magicItemResolver.createItem(itemId, amount)
+        } ?: run {
+            val display = itemRegistry.getItem(itemId)?.display ?: return null
+            val material = Material.matchMaterial((display.material ?: "PAPER").uppercase()) ?: Material.PAPER
+            ItemStack(material, amount)
+        }
+        applyBohSoulboundOverride(stack, itemId, owner)
         return stack
     }
 
-    private fun applySoulboundIfConfigured(stack: ItemStack, itemId: String, owner: Player?) {
+    /** BOH config override when soulbound is set here but not on the MagicSpells magic item. */
+    private fun applyBohSoulboundOverride(stack: ItemStack, itemId: String, owner: Player?) {
         if (owner == null) return
         if (itemRegistry.getItem(itemId)?.soulbound != true) return
         val meta = stack.itemMeta ?: return

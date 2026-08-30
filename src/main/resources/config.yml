@@ -87,7 +87,9 @@ categories:
     # No menu-icon: contributes capacity only, not browsable from hub
 
 items:
-  # soulbound: true — withdrawn stacks get MagicSpells magicspells:soulbound_owner PDC (owner UUID).
+  # soulbound: true — BOH override: withdrawn stacks get MagicSpells magicspells:soulbound_owner PDC.
+  # MagicSpells magic items with soulbound: true in their definition are honored automatically.
+  # Use BOH soulbound only to force soulbound without changing the MS item (or when MS item is missing).
   # Item-level flag; applies in every category the item belongs to. Default: false.
   fish-catfish1:
     categories: [fish, crafting_reagent]

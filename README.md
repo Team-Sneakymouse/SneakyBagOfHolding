@@ -194,7 +194,7 @@ Complete these steps once per organization / machine (same Sonatype namespace an
 
    You can reuse the same `.gradle/gradle.properties` values from the MagicSpells repo.
 
-5. **Version** — Set `version` in [`gradle.properties`](gradle.properties) (e.g. `1.0.0`). It must **not** end with `-SNAPSHOT` for a release on Maven Central.
+5. **Version** — Set `version` in [`gradle.properties`](gradle.properties) (e.g. `1.1.2`). It must **not** end with `-SNAPSHOT` for a release on Maven Central.
 
 **What is published:** plain library JAR, sources, Javadoc, and POM — not the fat plugin JAR from `./gradlew build`. Published POMs only declare Maven Central–safe dependencies (Kotlin, Gson). `paper-api` and `magicspells-core` stay `compileOnly` for consumers to add themselves.
 
@@ -234,7 +234,7 @@ repositories {
 dependencies {
     compileOnly("io.papermc.paper:paper-api:1.21.4-R0.1-SNAPSHOT")
     compileOnly("io.github.team-sneakymouse:magicspells-core:4.0-Beta-14")
-    compileOnly("io.github.team-sneakymouse:sneakybagofholding:1.0.0")
+    compileOnly("io.github.team-sneakymouse:sneakybagofholding:1.1.2")
 }
 ```
 
