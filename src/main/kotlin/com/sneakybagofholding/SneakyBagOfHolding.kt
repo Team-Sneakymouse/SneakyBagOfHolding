@@ -9,6 +9,7 @@ import com.sneakybagofholding.gui.GuiDisplayMarker
 import com.sneakybagofholding.util.SoulboundTag
 import com.sneakybagofholding.gui.MenuService
 import com.sneakybagofholding.listener.AutoPickupListener
+import com.sneakybagofholding.listener.BlockPlaceAutoRefillListener
 import com.sneakybagofholding.listener.MagicSpellsHookListener
 import com.sneakybagofholding.listener.PlayerDataListener
 import org.bukkit.Bukkit
@@ -70,6 +71,7 @@ class SneakyBagOfHolding : JavaPlugin() {
         registerCommands()
         server.pluginManager.registerEvents(menuService, this)
         server.pluginManager.registerEvents(AutoPickupListener(configManager, itemRegistry, bagService), this)
+        server.pluginManager.registerEvents(BlockPlaceAutoRefillListener(itemRegistry, bagService), this)
         server.pluginManager.registerEvents(PlayerDataListener(playerDataStore), this)
         server.pluginManager.registerEvents(MagicSpellsHookListener(this), this)
 

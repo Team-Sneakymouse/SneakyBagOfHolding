@@ -10,6 +10,7 @@ import com.sneakybagofholding.util.ItemStackStorage
 import com.sneakybagofholding.util.SoulboundTag
 import org.bukkit.Material
 import org.bukkit.entity.Player
+import org.bukkit.inventory.EquipmentSlot
 import org.bukkit.inventory.ItemStack
 import java.util.UUID
 
@@ -116,6 +117,38 @@ class BagService(
         data.setStored(itemId, stored - amount)
         playerDataStore.markDirty(player)
         return WithdrawResult.Success(stack)
+    }
+
+    /**
+     * Withdraws up to [amount] of [itemId] directly into [hand], when Autoloot is enabled.
+     * @return amount actually withdrawn into the hand slot
+     */
+    fun withdrawToHand(player: Player, itemId: String, hand: EquipmentSlot, amount: Int = 1): Int {
+        if (amount <= 0 || !itemRegistry.isRegistered(itemId)) return 0
+        val data = playerDataStore.get(player)
+        if (!data.isAutopickupEnabled(itemId)) return 0
+        val stored = data.getStored(itemId)
+        if (stored < amount) return 0
+
+        val maxStack = maxStackSize(itemId)
+        val current = player.inventory.getItem(hand)
+        val currentAmount = if (current.type.isAir) 0 else current.amount
+        if (currentAmount >= maxStack) return 0
+
+        val toWithdraw = minOf(amount, stored, maxStack - currentAmount)
+        if (toWithdraw <= 0) return 0
+
+        val stack = createItemStack(itemId, toWithdraw, player) ?: return 0
+        data.setStored(itemId, stored - toWithdraw)
+        playerDataStore.markDirty(player)
+
+        if (current.type.isAir) {
+            player.inventory.setItem(hand, stack)
+        } else {
+            current.amount = (currentAmount + toWithdraw).coerceAtMost(maxStack)
+            player.inventory.setItem(hand, current)
+        }
+        return toWithdraw
     }
 
     fun toggleAutopickup(player: Player, itemId: String): Boolean {

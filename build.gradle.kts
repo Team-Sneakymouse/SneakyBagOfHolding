@@ -9,7 +9,7 @@ plugins {
 }
 
 group = findProperty("mavenCentralGroup")?.toString() ?: "io.github.team-sneakymouse"
-version = findProperty("version")?.toString() ?: "1.1.2"
+version = findProperty("version")?.toString() ?: "1.1.3"
 
 repositories {
     mavenCentral()
@@ -18,7 +18,7 @@ repositories {
 
 dependencies {
     compileOnly("io.papermc.paper:paper-api:1.21.4-R0.1-SNAPSHOT")
-    compileOnly("io.github.team-sneakymouse:magicspells-core:4.0-Beta-17")
+    compileOnly("io.github.team-sneakymouse:magicspells-core:4.0-Beta-18")
     implementation("org.jetbrains.kotlin:kotlin-stdlib:1.9.21")
     implementation("com.google.code.gson:gson:2.10.1")
 }

@@ -10,6 +10,7 @@ Paper plugin that replaces the MagicSpells-based Bag of Holding with config-driv
 - **Categories** with optional hub icons (categories without `menu-icon` still affect capacity)
 - **Stacked capacity**: `effectiveMax = itemCapacity + sum(categoryCapacity for each category) + globalCapacity`
 - Category browser: deposit, withdraw, toggle autopickup (F / swap offhand); optional enchant glint when autopickup is on
+- **Autoloot refill**: when autopickup is on and the placing hand holds at least 50 of a configured magic item, placing that block withdraws 1 from bag storage back into the hand (only when the hand actually consumed that magic item)
 - Hub menu: open categories, drag-drop or shift-click deposit
 - Admin commands for capacity overrides and stored amounts
 - Config reload without restart
@@ -194,7 +195,7 @@ Complete these steps once per organization / machine (same Sonatype namespace an
 
    You can reuse the same `.gradle/gradle.properties` values from the MagicSpells repo.
 
-5. **Version** — Set `version` in [`gradle.properties`](gradle.properties) (e.g. `1.1.2`). It must **not** end with `-SNAPSHOT` for a release on Maven Central.
+5. **Version** — Set `version` in [`gradle.properties`](gradle.properties) (e.g. `1.1.3`). It must **not** end with `-SNAPSHOT` for a release on Maven Central.
 
 **What is published:** plain library JAR, sources, Javadoc, and POM — not the fat plugin JAR from `./gradlew build`. Published POMs only declare Maven Central–safe dependencies (Kotlin, Gson). `paper-api` and `magicspells-core` stay `compileOnly` for consumers to add themselves.
 
@@ -234,7 +235,7 @@ repositories {
 dependencies {
     compileOnly("io.papermc.paper:paper-api:1.21.4-R0.1-SNAPSHOT")
     compileOnly("io.github.team-sneakymouse:magicspells-core:4.0-Beta-14")
-    compileOnly("io.github.team-sneakymouse:sneakybagofholding:1.1.2")
+    compileOnly("io.github.team-sneakymouse:sneakybagofholding:1.1.3")
 }
 ```
 
