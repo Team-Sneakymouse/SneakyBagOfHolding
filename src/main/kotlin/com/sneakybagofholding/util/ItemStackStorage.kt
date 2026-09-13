@@ -26,7 +26,7 @@ object ItemStackStorage {
     private fun isWritableBookEmpty(stack: ItemStack): Boolean {
         val content = stack.getData(DataComponentTypes.WRITABLE_BOOK_CONTENT) ?: return true
         return content.pages().none { page ->
-            page.raw().isNotBlank() || page.filtered().isNotBlank()
+            page.raw()?.isNotBlank() == true || page.filtered()?.isNotBlank() == true
         }
     }
 
@@ -34,7 +34,7 @@ object ItemStackStorage {
         val content = stack.getData(DataComponentTypes.WRITTEN_BOOK_CONTENT) ?: return true
         return content.pages().none { page ->
             plainText.serialize(page.raw()).isNotBlank() ||
-                plainText.serialize(page.filtered()).isNotBlank()
+                (page.filtered()?.let { plainText.serialize(it) }?.isNotBlank() == true)
         }
     }
 }

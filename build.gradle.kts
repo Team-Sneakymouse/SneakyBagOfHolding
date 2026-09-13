@@ -1,8 +1,9 @@
 import org.gradle.external.javadoc.StandardJavadocDocletOptions
 import org.gradle.plugins.signing.SigningExtension
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
-    kotlin("jvm") version "1.9.21"
+    kotlin("jvm") version "2.3.0"
     id("xyz.jpenilla.run-paper") version "3.0.2"
     // 0.34+ uses Central Portal only (OSSRH removed); 0.36+ requires Kotlin 2.2
     id("com.vanniktech.maven.publish") version "0.34.0"
@@ -17,14 +18,14 @@ repositories {
 }
 
 dependencies {
-    compileOnly("io.papermc.paper:paper-api:1.21.4-R0.1-SNAPSHOT")
+    compileOnly("io.papermc.paper:paper-api:26.2.build.+")
     compileOnly("io.github.team-sneakymouse:magicspells-core:4.0-Beta-18")
-    implementation("org.jetbrains.kotlin:kotlin-stdlib:1.9.21")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib:2.3.0")
     implementation("com.google.code.gson:gson:2.10.1")
 }
 
 kotlin {
-    jvmToolchain(21)
+    jvmToolchain(25)
 }
 
 runPaper {
@@ -43,8 +44,8 @@ tasks {
     }
 
     compileKotlin {
-        kotlinOptions {
-            jvmTarget = "21"
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_25)
         }
     }
 
@@ -68,7 +69,7 @@ tasks {
     }
 
     runServer {
-        minecraftVersion("1.21.4")
+        minecraftVersion("26.2")
         pluginJars.from(pluginJar.flatMap { it.archiveFile })
     }
 

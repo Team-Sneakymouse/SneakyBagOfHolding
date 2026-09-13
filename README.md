@@ -233,7 +233,7 @@ repositories {
 }
 
 dependencies {
-    compileOnly("io.papermc.paper:paper-api:1.21.4-R0.1-SNAPSHOT")
+    compileOnly("io.papermc.paper:paper-api:26.2.build.+")
     compileOnly("io.github.team-sneakymouse:magicspells-core:4.0-Beta-14")
     compileOnly("io.github.team-sneakymouse:sneakybagofholding:1.1.3")
 }

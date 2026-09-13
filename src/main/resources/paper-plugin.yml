@@ -2,7 +2,7 @@ name: SneakyBagOfHolding
 version: '${version}'
 main: com.sneakybagofholding.SneakyBagOfHolding
 description: Virtual bag of holding storage with categories, stacked capacity, and autopickup.
-api-version: '1.21'
+api-version: '26.2'
 authors: [Team Sneakymouse]
 website: https://rawb.tv
 
