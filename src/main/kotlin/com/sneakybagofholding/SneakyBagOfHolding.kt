@@ -89,8 +89,12 @@ class SneakyBagOfHolding : JavaPlugin() {
 
     override fun onDisable() {
         Bukkit.getServicesManager().unregisterAll(this)
-        menuService.closeAllMenus()
-        playerDataStore.saveDirty()
+        if (::menuService.isInitialized) {
+            menuService.closeAllMenus()
+        }
+        if (::playerDataStore.isInitialized) {
+            playerDataStore.saveDirty()
+        }
         logger.info("SneakyBagOfHolding disabled.")
     }
 

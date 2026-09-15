@@ -27,6 +27,16 @@ settings:
     #   open-slot: 0
     #   material: GRAY_STAINED_GLASS_PANE
     #   custom-model-data: 1
+
+    # Hub "Deposit All" button — deposits every registered bag item from the player's
+    # inventory/hotbar. Slot defaults to 38. Omit material/name/lore to use built-in defaults.
+    # deposit-all:
+    #   slot: 38
+    #   material: CHEST
+    #   name: "<green>Deposit All"
+    #   lore:
+    #     - "<gray>Deposit all bag items"
+    #     - "<gray>from your inventory"
     category:
       # Default category-browser filler (slot defaults to 50)
       # decorative:

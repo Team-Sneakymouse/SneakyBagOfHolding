@@ -139,6 +139,7 @@ class ConfigManager(private val plugin: SneakyBagOfHolding) {
             ),
             mainMenuCategorySlots = iconSlots,
             hubFiller = HubFiller.parse(menu?.getConfigurationSection("hub-filler")),
+            depositAll = DepositAllButton.parse(menu?.getConfigurationSection("deposit-all")),
         )
     }
 

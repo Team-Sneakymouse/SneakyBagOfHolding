@@ -196,6 +196,29 @@ class BagService(
     }
 
     /**
+     * Deposits every registered, storable stack from the player's main inventory and hotbar.
+     * Armor and offhand are left untouched. Capacity limits still apply per item.
+     * @return total amount deposited across all item ids
+     */
+    fun depositAll(player: Player): Int {
+        var total = 0
+        val contents = player.inventory.storageContents
+        for (i in contents.indices) {
+            val stack = contents[i] ?: continue
+            if (stack.amount <= 0 || !ItemStackStorage.isStorable(stack)) continue
+            val itemId = itemRegistry.resolveItemId(stack) ?: continue
+            val deposited = addToStoredFromStack(player, itemId, stack)
+            if (deposited <= 0) continue
+            if (stack.amount <= 0) contents[i] = null
+            total += deposited
+        }
+        if (total > 0) {
+            player.inventory.storageContents = contents
+        }
+        return total
+    }
+
+    /**
      * Deposits from the item on the player's cursor (click or drag onto the menu).
      */
     fun depositFromCursor(player: Player, cursor: ItemStack): Int {

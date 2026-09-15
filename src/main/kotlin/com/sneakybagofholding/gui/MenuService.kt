@@ -135,12 +135,17 @@ class MenuService(
             }
         }
 
+        val depositAll = layout.depositAll
         layout.hubFiller?.let { filler ->
             for (i in 0 until inv.size) {
-                if (i != filler.openSlot && (inv.getItem(i) == null || inv.getItem(i)!!.type.isAir)) {
+                if (i == filler.openSlot || i == depositAll.slot) continue
+                if (inv.getItem(i) == null || inv.getItem(i)!!.type.isAir) {
                     inv.setItem(i, filler.item.clone())
                 }
             }
+        }
+        if (depositAll.slot in 0 until inv.size) {
+            inv.setItem(depositAll.slot, depositAll.item.clone())
         }
     }
 
@@ -157,7 +162,7 @@ class MenuService(
     }
 
     private fun isReservedMainMenuSlot(slot: Int, layout: MenuLayoutSettings): Boolean =
-        layout.mainMenuDecorative?.slot == slot
+        layout.mainMenuDecorative?.slot == slot || layout.depositAll.slot == slot
 
     private fun categoryAtMainMenuSlot(slot: Int): CategoryDefinition? {
         val layout = configManager.getSettings().menuLayout
@@ -307,12 +312,22 @@ class MenuService(
     }
 
     private fun handleMainTopClick(event: InventoryClickEvent, player: Player, holder: BagInventoryHolder.MainMenu) {
-        val hubDecoSlot = configManager.getSettings().menuLayout.mainMenuDecorative?.slot
+        val layout = configManager.getSettings().menuLayout
+        val hubDecoSlot = layout.mainMenuDecorative?.slot
+        val depositAllSlot = layout.depositAll.slot
         if (tryCursorDeposit(event, player, holder) { slot ->
-            hubDecoSlot == null || slot != hubDecoSlot
+            slot != depositAllSlot && (hubDecoSlot == null || slot != hubDecoSlot)
         }) return
 
         val slot = event.rawSlot
+        if (slot == depositAllSlot) {
+            val deposited = bagService.depositAll(player)
+            if (deposited > 0) {
+                configManager.getSettings().audio.deposit?.play(player)
+            }
+            return
+        }
+
         val category = categoryAtMainMenuSlot(slot) ?: return
         configManager.getSettings().audio.navigate?.play(player)
         Bukkit.getScheduler().runTask(plugin, Runnable { openCategoryMenu(player, category.id) })

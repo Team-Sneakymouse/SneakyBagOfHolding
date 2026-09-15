@@ -35,10 +35,12 @@ data class HubFiller(val item: ItemStack, val openSlot: Int = 0) {
  * @property categoryMenuDecorative Default filler for category browsers (`category.decorative` or `slot-50`).
  * @property mainMenuCategorySlots Category id → inventory slot for hub icons; empty = sequential from 0.
  * @property hubFiller Fills all empty slots in the main menu except for one slot.
+ * @property depositAll Hub button that deposits every eligible stack from the player inventory.
  */
 data class MenuLayoutSettings(
     val mainMenuDecorative: MenuDecorative? = null,
     val categoryMenuDecorative: MenuDecorative? = null,
     val mainMenuCategorySlots: Map<String, Int> = emptyMap(),
     val hubFiller: HubFiller? = null,
+    val depositAll: DepositAllButton = DepositAllButton(DepositAllButton.DEFAULT_SLOT, DepositAllButton.defaultItem()),
 )
