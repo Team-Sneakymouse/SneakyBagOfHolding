@@ -111,6 +111,7 @@ publishing {
                     "Paper plugin for virtual bag-of-holding storage with categories and autopickup."
                 )
                 url.set("https://github.com/Team-Sneakymouse/SneakyBagOfHolding")
+                properties.put("sneakyrp.deployment.type", "paper-plugin")
                 licenses {
                     license {
                         name.set("GNU General Public License v3.0")
