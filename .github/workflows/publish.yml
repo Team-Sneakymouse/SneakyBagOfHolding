@@ -48,4 +48,4 @@ jobs:
           : "${MAVEN_PASSWORD:?Infisical must provide MAVEN_PASSWORD}"
           export ORG_GRADLE_PROJECT_sneakyrpUsername="$MAVEN_USERNAME"
           export ORG_GRADLE_PROJECT_sneakyrpPassword="$MAVEN_PASSWORD"
-          ./gradlew publishLibraryPublicationToSneakyrpRepository --no-daemon --console=plain
+          ./gradlew publishMavenPublicationToSneakyrpRepository --no-daemon --console=plain

@@ -44,15 +44,6 @@ java {
     withJavadocJar()
 }
 
-runPaper {
-    disablePluginJarDetection()
-}
-
-base {
-    // Thin/Maven artifacts use lowercase artifact-style names; the fat plugin JAR is named separately.
-    archivesName.set("sneakybagofholding")
-}
-
 tasks {
     processResources {
         inputs.property("version", project.version.toString())
@@ -67,28 +58,16 @@ tasks {
         }
     }
 
-    // Thin library JAR for Maven consumers (default `jar` task).
+    // Fat plugin JAR (kotlin-stdlib + gson bundled) — also what Maven publishes.
     jar {
-        archiveClassifier.set("")
-    }
-
-    // Fat plugin JAR for the Paper plugins folder (kotlin-stdlib + gson bundled).
-    val pluginJar by registering(Jar::class) {
-        archiveClassifier.set("plugin")
+        archiveBaseName.set(rootProject.name)
         archiveFileName.set("${rootProject.name}-${project.version}.jar")
-        from(sourceSets["main"].output)
         from(configurations.runtimeClasspath.get().map { if (it.isDirectory) it else zipTree(it) })
         duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-        dependsOn(classes)
-    }
-
-    build {
-        dependsOn(pluginJar)
     }
 
     runServer {
         minecraftVersion("26.2")
-        pluginJars.from(pluginJar.flatMap { it.archiveFile })
     }
 
     withType<Javadoc>().configureEach {
@@ -102,7 +81,7 @@ tasks {
 
 publishing {
     publications {
-        create<MavenPublication>("library") {
+        create<MavenPublication>("maven") {
             artifactId = "sneakybagofholding"
             from(components["java"])
             pom {
@@ -128,38 +107,6 @@ publishing {
                 scm {
                     url.set("https://github.com/Team-Sneakymouse/SneakyBagOfHolding")
                     connection.set("scm:git:https://github.com/Team-Sneakymouse/SneakyBagOfHolding.git")
-                }
-                // Published POM should not pull in compileOnly Paper/MagicSpells for consumers.
-                withXml {
-                    val root = asNode()
-                    val dependenciesNode = root.get("dependencies") as? groovy.util.NodeList ?: return@withXml
-                    if (dependenciesNode.isEmpty()) {
-                        return@withXml
-                    }
-                    val depsContainer = dependenciesNode[0] as groovy.util.Node
-                    val allowedGroupPrefixes = listOf(
-                        "io.github.team-sneakymouse",
-                        "org.jetbrains",
-                        "com.google.code.gson",
-                        "com.google.gson",
-                    )
-                    val dependencyNodes =
-                        (depsContainer.get("dependency") as? groovy.util.NodeList)?.toList().orEmpty()
-                    val toRemove = dependencyNodes.mapNotNull { depObj ->
-                        val dep = depObj as groovy.util.Node
-                        fun childText(name: String): String =
-                            ((dep.get(name) as? groovy.util.NodeList)?.firstOrNull() as? groovy.util.Node)
-                                ?.text()
-                                .orEmpty()
-                        val groupId = childText("groupId")
-                        val allowed = allowedGroupPrefixes.any { groupId.startsWith(it) }
-                        if (!allowed) dep else null
-                    }
-                    toRemove.forEach { depsContainer.remove(it) }
-                    val remaining = depsContainer.get("dependency") as? groovy.util.NodeList
-                    if (remaining == null || remaining.isEmpty()) {
-                        root.remove(depsContainer)
-                    }
                 }
             }
         }

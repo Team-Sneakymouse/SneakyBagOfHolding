@@ -167,15 +167,13 @@ Player overrides via `/boh capacity` replace the config default for that compone
 ./gradlew build
 ```
 
-Plugin JAR (fat, for the Paper plugins folder): `build/libs/SneakyBagOfHolding-<version>.jar`
+Plugin JAR (kotlin-stdlib + gson shaded): `build/libs/SneakyBagOfHolding-<version>.jar`
 
-Library JAR (thin, for Maven — **do not** drop this into `plugins/`): `build/libs/sneakybagofholding-<version>.jar`
-
-Versions use `yyyy.MM.dd-<12-character Git hash>`, with the date taken from the commit timestamp in UTC. Gradle derives this automatically for local builds and CI, and inserts the same version into `paper-plugin.yml`. Each new commit gets its own version; rebuilding the same commit reuses its version. Uncommitted edits keep the current HEAD version, so commit changes before publishing. Builds require a Git checkout.
+The same fat JAR is what Maven publishes (under artifact id `sneakybagofholding`). Versions use `yyyy.MM.dd-<12-character Git hash>`, with the date taken from the commit timestamp in UTC. Gradle derives this automatically for local builds and CI, and inserts the same version into `paper-plugin.yml`. Each new commit gets its own version; rebuilding the same commit reuses its version. Uncommitted edits keep the current HEAD version, so commit changes before publishing. Builds require a Git checkout.
 
 ## Maven publication
 
-The `library` publication publishes `io.github.team-sneakymouse:sneakybagofholding` using the project version, with sources and Javadocs. Kotlin package names remain `com.sneakybagofholding`. Install the full plugin JAR separately on the server. Published POMs declare runtime library dependencies (Kotlin, Gson); `paper-api` and `magicspells-core` stay `compileOnly` for consumers to add themselves.
+The `maven` publication publishes `io.github.team-sneakymouse:sneakybagofholding` using the project version, with sources and Javadocs — the main artifact is the fat plugin JAR suitable for `plugins/`. Kotlin package names remain `com.sneakybagofholding`. `paper-api` and `magicspells` stay `compileOnly` (provided by the server / other plugins).
 
 In `~/.gradle/gradle.properties` (or via `ORG_GRADLE_PROJECT_*` env vars; see [`gradle.properties.example`](gradle.properties.example)):
 
@@ -189,7 +187,7 @@ Publishing targets `https://maven.sneakyrp.com/releases`. For Reposilite, `sneak
 Once configured, publish with:
 
 ```bash
-./gradlew publishLibraryPublicationToSneakyrpRepository
+./gradlew publishMavenPublicationToSneakyrpRepository
 ```
 
 Dry-run locally without upload credentials:
@@ -198,7 +196,7 @@ Dry-run locally without upload credentials:
 ./gradlew publishToMavenLocal
 ```
 
-GitHub Actions builds and publishes the library on every push to `main`, using the version derived from the checked-out Git commit. The workflow builds with Java 25, then fetches `MAVEN_USERNAME` and `MAVEN_PASSWORD` from `/Maven` in the Infisical `lords-of-minecraft` project, `prod` environment, using the same OIDC setup as OverlayV1 / SneakyPocketbase. Make `INFISICAL_IDENTITY_ID` and `INFISICAL_DOMAIN` available as GitHub Actions secrets for this repository, and ensure the identity's OIDC policy allows this repository's `main` branch and access to `/Maven`.
+GitHub Actions builds and publishes on every push to `main`, using the version derived from the checked-out Git commit. The workflow builds with Java 25, then fetches `MAVEN_USERNAME` and `MAVEN_PASSWORD` from `/Maven` in the Infisical `lords-of-minecraft` project, `prod` environment, using the same OIDC setup as OverlayV1 / SneakyPocketbase. Make `INFISICAL_IDENTITY_ID` and `INFISICAL_DOMAIN` available as GitHub Actions secrets for this repository, and ensure the identity's OIDC policy allows this repository's `main` branch and access to `/Maven`.
 
 ## Data files
 
