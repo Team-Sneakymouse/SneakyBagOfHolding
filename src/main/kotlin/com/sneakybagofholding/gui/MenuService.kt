@@ -287,11 +287,19 @@ class MenuService(
         return categoryNavigation.itemsInCategory(categoryId).getOrNull(globalIndex)?.id
     }
 
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    // Other plugins may cancel offhand swaps; still allow the bag's autoloot toggle.
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = false)
     fun onInventoryClick(event: InventoryClickEvent) {
         val holder = event.view.topInventory.holder as? BagInventoryHolder ?: return
         if (event.whoClicked !is Player) return
         val player = event.whoClicked as Player
+        val wasCancelled = event.isCancelled
+        if (wasCancelled && (
+                holder !is BagInventoryHolder.CategoryMenu ||
+                    event.clickedInventory != event.view.topInventory ||
+                    !CategoryMenuLayout.isItemSlot(event.rawSlot) ||
+                    !isAutolootToggleClick(event)
+                )) return
 
         // Player inventory: allow normal clicks/drags; only intercept shift-click to deposit.
         if (event.clickedInventory == event.view.bottomInventory) {
@@ -307,7 +315,7 @@ class MenuService(
         event.isCancelled = true
         when (holder) {
             is BagInventoryHolder.MainMenu -> handleMainTopClick(event, player, holder)
-            is BagInventoryHolder.CategoryMenu -> handleCategoryTopClick(event, player, holder)
+            is BagInventoryHolder.CategoryMenu -> handleCategoryTopClick(event, player, holder, allowCursorDeposit = !wasCancelled)
         }
     }
 
@@ -375,12 +383,21 @@ class MenuService(
         scheduleMenuRefresh(player, holder)
     }
 
-    private fun handleCategoryTopClick(event: InventoryClickEvent, player: Player, holder: BagInventoryHolder.CategoryMenu) {
+    private fun isAutolootToggleClick(event: InventoryClickEvent): Boolean =
+        event.click == ClickType.SWAP_OFFHAND ||
+            event.click == ClickType.NUMBER_KEY && event.hotbarButton == 40
+
+    private fun handleCategoryTopClick(
+        event: InventoryClickEvent,
+        player: Player,
+        holder: BagInventoryHolder.CategoryMenu,
+        allowCursorDeposit: Boolean,
+    ) {
         val category = configManager.getCategories()[holder.categoryId] ?: return
         val decorativeSlot = configManager.resolveCategoryMenuDecorative(category)?.slot
             ?: CategoryMenuLayout.DEFAULT_DECORATIVE_SLOT
 
-        if (tryCursorDeposit(event, player, holder) { !CategoryMenuLayout.isNavigationSlot(it, decorativeSlot) }) {
+        if (allowCursorDeposit && tryCursorDeposit(event, player, holder) { !CategoryMenuLayout.isNavigationSlot(it, decorativeSlot) }) {
             return
         }
 
@@ -418,7 +435,7 @@ class MenuService(
         val itemId = itemIdAtSlot(holder.categoryId, holder.pageIndex, slot) ?: return
         val click = event.click
         when {
-            click == ClickType.SWAP_OFFHAND || click == ClickType.NUMBER_KEY && event.hotbarButton == 40 -> {
+            isAutolootToggleClick(event) -> {
                 bagService.toggleAutopickup(player, itemId)
                 configManager.getSettings().audio.toggleAutoloot?.play(player)
                 scheduleMenuRefresh(player, holder)
