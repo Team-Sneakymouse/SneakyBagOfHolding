@@ -30,6 +30,7 @@ repositories {
 
 dependencies {
     compileOnly("io.papermc.paper:paper-api:26.2.build.+")
+    compileOnly("io.github.team-sneakymouse:sneakyutils:2026.10.18-4b5831b0b997")
     compileOnly("io.github.team-sneakymouse:magicspells:2026.10.15-f0a44ae377a3")
     implementation("org.jetbrains.kotlin:kotlin-stdlib:2.3.0")
     implementation("com.google.code.gson:gson:2.10.1")

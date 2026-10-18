@@ -7,7 +7,7 @@ import com.sneakybagofholding.registry.MagicDisplayAppearance
 import com.sneakybagofholding.registry.MagicItemResolver
 import com.sneakybagofholding.storage.PlayerDataStore
 import com.sneakybagofholding.util.CustomModelDataSupport
-import com.sneakybagofholding.util.ItemMetaText
+import com.sneakyutils.util.ItemMetaText
 import com.sneakybagofholding.util.ItemStackParser
 import org.bukkit.Material
 import org.bukkit.entity.Player

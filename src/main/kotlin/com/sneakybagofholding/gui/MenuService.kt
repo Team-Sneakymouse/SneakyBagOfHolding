@@ -10,8 +10,8 @@ import com.sneakybagofholding.registry.ItemRegistry
 import com.sneakybagofholding.registry.MagicItemResolver
 import com.sneakybagofholding.service.BagService
 import com.sneakybagofholding.storage.PlayerDataStore
-import com.sneakybagofholding.util.ItemMetaText
-import com.sneakybagofholding.util.TextUtility
+import com.sneakyutils.util.ItemMetaText
+import com.sneakyutils.util.TextUtility
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player

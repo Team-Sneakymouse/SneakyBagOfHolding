@@ -1,6 +1,6 @@
 package com.sneakybagofholding.config
 
-import com.sneakybagofholding.util.ItemMetaText
+import com.sneakyutils.util.ItemMetaText
 import com.sneakybagofholding.util.ItemStackParser
 import org.bukkit.Material
 import org.bukkit.configuration.ConfigurationSection
