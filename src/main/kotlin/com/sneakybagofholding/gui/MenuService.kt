@@ -30,6 +30,9 @@ import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Main hub and category browser GUIs with deposit/withdraw/autopickup interactions.
+ *
+ * Click handlers cancel the click and defer (re)opening with `runTask`; never mutate the open inventory inside the
+ * event callback.
  */
 class MenuService(
     private val configManager: ConfigManager,

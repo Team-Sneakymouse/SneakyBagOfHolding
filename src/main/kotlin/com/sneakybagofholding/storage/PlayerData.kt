@@ -3,6 +3,9 @@ package com.sneakybagofholding.storage
 /**
  * Per-player bag of holding persistence model.
  *
+ * Item ids are MagicSpells item ids (e.g. `item-banana`) in [stored], [autopickup] and [itemCapacity]; renaming an
+ * item in MagicSpells-Data orphans its stored amount. Check `tools/migrate_*.py` before changing the format.
+ *
  * @property stored Amount stored per item id.
  * @property autopickup Per-item autopickup enabled flags.
  * @property itemCapacity Overrides for per-item base capacity (additive component).

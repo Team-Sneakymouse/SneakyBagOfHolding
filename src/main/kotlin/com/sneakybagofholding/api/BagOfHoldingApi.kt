@@ -7,7 +7,10 @@ import org.bukkit.inventory.ItemStack
 /**
  * Public integration surface for other plugins (for example SneakyGroundItems, MagicSpells).
  *
- * Obtain via [get] or Bukkit's [org.bukkit.plugin.ServicesManager].
+ * Obtain via [get] or Bukkit's [org.bukkit.plugin.ServicesManager]. [get] is null when the plugin is absent.
+ *
+ * A contract with other plugins: keep it null-safe and [WithdrawResult] / [WithdrawFailureReason] stable; make
+ * additive changes only.
  */
 interface BagOfHoldingApi {
 

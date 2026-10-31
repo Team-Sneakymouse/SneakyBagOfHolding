@@ -45,6 +45,9 @@ class PlayerDataStore(private val plugin: SneakyBagOfHolding) {
         }
     }
 
+    // Runs on the async autosave thread, serializing the live PlayerData, and writes the file in place. Rework with a
+    // snapshot taken on the main thread and SneakyUtils AtomicFiles; on a corrupt read, move the file aside rather
+    // than returning empty data that the next save would overwrite.
     fun save(uuid: UUID) {
         val data = cache[uuid] ?: return
         val file = fileFor(uuid)
