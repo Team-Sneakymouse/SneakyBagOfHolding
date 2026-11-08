@@ -1,5 +1,9 @@
 package com.sneakybagofholding.registry
 
+import com.nisovin.magicspells.util.magicitems.CustomModelDataValues
+import com.nisovin.magicspells.util.magicitems.MagicItemData
+import com.nisovin.magicspells.util.magicitems.MagicItemData.MagicItemAttribute
+import com.nisovin.magicspells.util.magicitems.MagicItems
 import com.sneakybagofholding.SneakyBagOfHolding
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.minimessage.MiniMessage
@@ -7,60 +11,24 @@ import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
-import org.bukkit.plugin.Plugin
-import java.lang.reflect.Method
+import org.bukkit.inventory.meta.ItemMeta
 
 /**
- * Resolves MagicSpells magic items via reflection on MagicSpells' classloader.
+ * Resolves MagicSpells magic items through typed imports.
  *
- * Paper plugins cannot directly reference MagicSpells types at runtime unless
- * [join-classpath](https://docs.papermc.io/paper/dev/getting-started/paper-plugins/) is used;
- * loading API classes from the MagicSpells plugin avoids [NoClassDefFoundError].
+ * Requires Paper `join-classpath: true` on MagicSpells (see paper-plugin.yml) so the
+ * API classes load at runtime; [initialize] only gates on MagicSpells being enabled.
  */
 class MagicItemResolver(private val plugin: SneakyBagOfHolding) {
 
     private var available = false
-    private var magicSpellsPlugin: Plugin? = null
-
-    private var getItemByInternalName: Method? = null
-    private var getMagicItemByInternalName: Method? = null
-    private var magicItemCreateFor: Method? = null
-    private var getMagicItemDataFromItemStack: Method? = null
-    private var getMagicItemDataByInternalName: Method? = null
-    private var magicItemDataMatches: Method? = null
-
-    private var magicItemDataHasAttribute: Method? = null
-    private var magicItemDataGetAttribute: Method? = null
-    private var attrType: Any? = null
-    private var attrName: Any? = null
-    private var attrCustomModelData: Any? = null
-
-    private var customModelDataValuesClass: Class<*>? = null
-    private var customModelDataApplyTo: Method? = null
-    private var customModelDataOfLegacyInt: Method? = null
 
     /**
-     * Binds to MagicSpells when that plugin is present and enabled.
-     * @return true if API methods were resolved successfully
+     * Marks MagicSpells ready when that plugin is present and enabled.
+     * @return true if item APIs may be called
      */
     fun initialize(): Boolean {
         available = false
-        magicSpellsPlugin = null
-        getItemByInternalName = null
-        getMagicItemByInternalName = null
-        magicItemCreateFor = null
-        getMagicItemDataFromItemStack = null
-        getMagicItemDataByInternalName = null
-        magicItemDataMatches = null
-        magicItemDataHasAttribute = null
-        magicItemDataGetAttribute = null
-        attrType = null
-        attrName = null
-        attrCustomModelData = null
-        customModelDataValuesClass = null
-        customModelDataApplyTo = null
-        customModelDataOfLegacyInt = null
-
         val ms = Bukkit.getPluginManager().getPlugin("MagicSpells") ?: run {
             plugin.logger.warning("MagicSpells not found — item matching and giving disabled.")
             return false
@@ -69,95 +37,9 @@ class MagicItemResolver(private val plugin: SneakyBagOfHolding) {
             plugin.logger.info("MagicSpells not enabled yet — will retry when it loads.")
             return false
         }
-
-        return try {
-            val loader = ms.javaClass.classLoader
-            val magicItemsClass = Class.forName(
-                "com.nisovin.magicspells.util.magicitems.MagicItems",
-                true,
-                loader
-            )
-            val magicItemDataClass = Class.forName(
-                "com.nisovin.magicspells.util.magicitems.MagicItemData",
-                true,
-                loader
-            )
-            val magicItemAttributeClass = Class.forName(
-                "com.nisovin.magicspells.util.magicitems.MagicItemData\$MagicItemAttribute",
-                true,
-                loader
-            )
-
-            val magicItemClass = Class.forName(
-                "com.nisovin.magicspells.util.magicitems.MagicItem",
-                true,
-                loader
-            )
-
-            getItemByInternalName = magicItemsClass.getMethod("getItemByInternalName", String::class.java)
-            getMagicItemByInternalName = magicItemsClass.getMethod("getMagicItemByInternalName", String::class.java)
-            magicItemCreateFor = magicItemClass.getMethod(
-                "createFor",
-                Player::class.java,
-                Int::class.javaPrimitiveType
-            )
-            getMagicItemDataFromItemStack = magicItemsClass.getMethod(
-                "getMagicItemDataFromItemStack",
-                ItemStack::class.java
-            )
-            getMagicItemDataByInternalName = magicItemsClass.getMethod(
-                "getMagicItemDataByInternalName",
-                String::class.java
-            )
-            magicItemDataMatches = magicItemDataClass.getMethod("matches", magicItemDataClass)
-            magicItemDataHasAttribute = magicItemDataClass.getMethod(
-                "hasAttribute",
-                magicItemAttributeClass
-            )
-            magicItemDataGetAttribute = magicItemDataClass.getMethod(
-                "getAttribute",
-                magicItemAttributeClass
-            )
-
-            val cmdValuesClass = try {
-                Class.forName(
-                    "com.nisovin.magicspells.util.magicitems.CustomModelDataValues",
-                    true,
-                    loader
-                )
-            } catch (_: ClassNotFoundException) {
-                null
-            }
-            if (cmdValuesClass != null) {
-                customModelDataValuesClass = cmdValuesClass
-                customModelDataApplyTo = cmdValuesClass.getMethod(
-                    "applyTo",
-                    org.bukkit.inventory.meta.ItemMeta::class.java
-                )
-                customModelDataOfLegacyInt = cmdValuesClass.getMethod(
-                    "ofLegacyInt",
-                    Int::class.javaPrimitiveType
-                )
-            }
-
-            @Suppress("UNCHECKED_CAST")
-            val enumConstants = magicItemAttributeClass.enumConstants as Array<Any>
-            for (constant in enumConstants) {
-                when ((constant as Enum<*>).name) {
-                    "TYPE" -> attrType = constant
-                    "NAME" -> attrName = constant
-                    "CUSTOM_MODEL_DATA" -> attrCustomModelData = constant
-                }
-            }
-
-            magicSpellsPlugin = ms
-            available = true
-            plugin.logger.info("Hooked MagicSpells API for item resolution.")
-            true
-        } catch (e: ReflectiveOperationException) {
-            plugin.logger.severe("Failed to hook MagicSpells API: ${e.message}")
-            false
-        }
+        available = true
+        plugin.logger.info("Hooked MagicSpells API for item resolution.")
+        return true
     }
 
     fun isAvailable(): Boolean = available
@@ -166,14 +48,19 @@ class MagicItemResolver(private val plugin: SneakyBagOfHolding) {
      * Material, display name, and custom model data from MagicSpells template data only (no lore).
      */
     fun getDisplayAppearance(internalName: String): MagicDisplayAppearance? {
-        val typeAttr = attrType ?: return null
         if (!available) return null
         val data = getTemplateData(internalName) ?: return null
-        val material = getDataAttribute(data, typeAttr) as? Material ?: return null
-        val displayName = attrName?.let { attr ->
-            getDataAttribute(data, attr) as? Component
-        }?.let { componentToConfigString(it) }
-        val rawCmd = attrCustomModelData?.let { attr -> getDataAttribute(data, attr) }
+        val material = data.getAttribute(MagicItemAttribute.TYPE) as? Material ?: return null
+        val displayName = if (data.hasAttribute(MagicItemAttribute.NAME)) {
+            (data.getAttribute(MagicItemAttribute.NAME) as? Component)?.let { componentToConfigString(it) }
+        } else {
+            null
+        }
+        val rawCmd = if (data.hasAttribute(MagicItemAttribute.CUSTOM_MODEL_DATA)) {
+            data.getAttribute(MagicItemAttribute.CUSTOM_MODEL_DATA)
+        } else {
+            null
+        }
         val customModelDataValues = resolveCustomModelDataValues(rawCmd)
         val legacyCustomModelData = if (customModelDataValues == null && rawCmd is Int) rawCmd else null
         return MagicDisplayAppearance(material, displayName, customModelDataValues, legacyCustomModelData)
@@ -182,39 +69,16 @@ class MagicItemResolver(private val plugin: SneakyBagOfHolding) {
     /**
      * Applies MagicSpells custom model data to a GUI icon.
      */
-    fun applyCustomModelData(meta: org.bukkit.inventory.meta.ItemMeta, values: Any) {
-        if (!available || customModelDataApplyTo == null) return
-        if (customModelDataValuesClass?.isInstance(values) != true) return
-        try {
-            customModelDataApplyTo!!.invoke(values, meta)
-        } catch (e: ReflectiveOperationException) {
-            plugin.logger.warning("Failed to apply MagicSpells custom model data: ${e.message}")
-        }
+    fun applyCustomModelData(meta: ItemMeta, values: CustomModelDataValues) {
+        if (!available) return
+        values.applyTo(meta)
     }
 
-    private fun resolveCustomModelDataValues(raw: Any?): Any? {
-        if (raw == null) return null
-        val cmdClass = customModelDataValuesClass ?: return null
-        if (cmdClass.isInstance(raw)) return raw
-        if (raw is Int && customModelDataOfLegacyInt != null) {
-            return try {
-                customModelDataOfLegacyInt!!.invoke(null, raw)
-            } catch (_: ReflectiveOperationException) {
-                null
-            }
-        }
-        return null
-    }
-
-    private fun getDataAttribute(data: Any, attribute: Any): Any? {
-        if (magicItemDataHasAttribute == null || magicItemDataGetAttribute == null) return null
-        return try {
-            val has = magicItemDataHasAttribute!!.invoke(data, attribute) as Boolean
-            if (!has) return null
-            magicItemDataGetAttribute!!.invoke(data, attribute)
-        } catch (e: ReflectiveOperationException) {
-            null
-        }
+    private fun resolveCustomModelDataValues(raw: Any?): CustomModelDataValues? = when (raw) {
+        null -> null
+        is CustomModelDataValues -> raw
+        is Int -> CustomModelDataValues.ofLegacyInt(raw)
+        else -> null
     }
 
     private fun componentToConfigString(component: Component): String =
@@ -227,11 +91,13 @@ class MagicItemResolver(private val plugin: SneakyBagOfHolding) {
     fun createItem(internalName: String, amount: Int = 1): ItemStack? {
         if (!available) return null
         return try {
-            val stack = (getItemByInternalName!!.invoke(null, internalName) as? ItemStack)?.clone()
-                ?: return null
+            val stack = MagicItems.getItemByInternalName(internalName)?.clone() ?: return null
             stack.amount = amount.coerceAtLeast(1)
             stack
-        } catch (e: ReflectiveOperationException) {
+        } catch (e: RuntimeException) {
+            plugin.logger.warning("createItem failed for $internalName: ${e.message}")
+            null
+        } catch (e: LinkageError) {
             plugin.logger.warning("createItem failed for $internalName: ${e.message}")
             null
         }
@@ -241,45 +107,48 @@ class MagicItemResolver(private val plugin: SneakyBagOfHolding) {
      * Creates an item for [player], applying MagicSpells magic-item behaviors (e.g. soulbound).
      */
     fun createItemForPlayer(internalName: String, player: Player, amount: Int): ItemStack? {
-        if (!available || getMagicItemByInternalName == null || magicItemCreateFor == null) return null
+        if (!available) return null
         return try {
-            val magicItem = getMagicItemByInternalName!!.invoke(null, internalName) ?: return null
-            magicItemCreateFor!!.invoke(magicItem, player, amount.coerceAtLeast(1)) as? ItemStack
-        } catch (e: ReflectiveOperationException) {
+            val magicItem = MagicItems.getMagicItemByInternalName(internalName) ?: return null
+            magicItem.createFor(player, amount.coerceAtLeast(1))
+        } catch (e: RuntimeException) {
+            plugin.logger.warning("createItemForPlayer failed for $internalName: ${e.message}")
+            null
+        } catch (e: LinkageError) {
             plugin.logger.warning("createItemForPlayer failed for $internalName: ${e.message}")
             null
         }
     }
 
-    /**
-     * Extracts MagicSpells [MagicItemData] from a stack for matching (opaque [Any]).
-     */
-    fun getDataFromStack(stack: ItemStack): Any? {
+    fun getDataFromStack(stack: ItemStack): MagicItemData? {
         if (!available) return null
         return try {
-            getMagicItemDataFromItemStack!!.invoke(null, stack)
-        } catch (e: ReflectiveOperationException) {
+            MagicItems.getMagicItemDataFromItemStack(stack)
+        } catch (_: RuntimeException) {
+            null
+        } catch (_: LinkageError) {
             null
         }
     }
 
-    /**
-     * Returns template data for a configured internal name (opaque [Any]).
-     */
-    fun getTemplateData(internalName: String): Any? {
+    fun getTemplateData(internalName: String): MagicItemData? {
         if (!available) return null
         return try {
-            getMagicItemDataByInternalName!!.invoke(null, internalName)
-        } catch (e: ReflectiveOperationException) {
+            MagicItems.getMagicItemDataByInternalName(internalName)
+        } catch (_: RuntimeException) {
+            null
+        } catch (_: LinkageError) {
             null
         }
     }
 
-    fun matches(stackData: Any, template: Any): Boolean {
+    fun matches(stackData: MagicItemData, template: MagicItemData): Boolean {
         if (!available) return false
         return try {
-            magicItemDataMatches!!.invoke(template, stackData) as Boolean
-        } catch (e: ReflectiveOperationException) {
+            template.matches(stackData)
+        } catch (_: RuntimeException) {
+            false
+        } catch (_: LinkageError) {
             false
         }
     }

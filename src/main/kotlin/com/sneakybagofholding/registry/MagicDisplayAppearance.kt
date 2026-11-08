@@ -1,5 +1,6 @@
 package com.sneakybagofholding.registry
 
+import com.nisovin.magicspells.util.magicitems.CustomModelDataValues
 import org.bukkit.Material
 
 /**
@@ -9,8 +10,8 @@ import org.bukkit.Material
 data class MagicDisplayAppearance(
     val material: Material,
     val displayName: String?,
-    /** Opaque MagicSpells [CustomModelDataValues], when the item defines custom model data. */
-    val customModelDataValues: Any? = null,
+    /** MagicSpells custom model data component, when the item defines it. */
+    val customModelDataValues: CustomModelDataValues? = null,
     /** Legacy integer CMD when MagicSpells still stores an [Int] (pre-CustomModelDataValues). */
     val legacyCustomModelData: Int? = null,
 )

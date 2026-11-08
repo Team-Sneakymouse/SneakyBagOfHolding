@@ -1,5 +1,6 @@
 package com.sneakybagofholding.registry
 
+import com.nisovin.magicspells.util.magicitems.MagicItemData
 import com.sneakybagofholding.config.ConfigManager
 import com.sneakybagofholding.config.ItemDefinition
 import org.bukkit.inventory.ItemStack
@@ -13,7 +14,7 @@ class ItemRegistry(
 ) {
 
     private var itemsById: Map<String, ItemDefinition> = emptyMap()
-    private var templates: List<Pair<String, Any>> = emptyList()
+    private var templates: List<Pair<String, MagicItemData>> = emptyList()
 
     fun reload() {
         itemsById = configManager.getItems()
