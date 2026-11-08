@@ -1,8 +1,8 @@
 package com.sneakybagofholding.registry
 
-import com.nisovin.magicspells.util.magicitems.MagicItemData
 import com.sneakybagofholding.config.ConfigManager
 import com.sneakybagofholding.config.ItemDefinition
+import com.sneakyitems.util.magicitems.MagicItemData
 import org.bukkit.inventory.ItemStack
 
 /**

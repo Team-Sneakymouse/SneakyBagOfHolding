@@ -1,10 +1,10 @@
 package com.sneakybagofholding.registry
 
-import com.nisovin.magicspells.util.magicitems.CustomModelDataValues
-import com.nisovin.magicspells.util.magicitems.MagicItemData
-import com.nisovin.magicspells.util.magicitems.MagicItemData.MagicItemAttribute
-import com.nisovin.magicspells.util.magicitems.MagicItems
 import com.sneakybagofholding.SneakyBagOfHolding
+import com.sneakyitems.api.SneakyItemsAPI
+import com.sneakyitems.util.magicitems.CustomModelDataValues
+import com.sneakyitems.util.magicitems.MagicItemData
+import com.sneakyitems.util.magicitems.MagicItemData.MagicItemAttribute
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.minimessage.MiniMessage
 import org.bukkit.Bukkit
@@ -14,38 +14,35 @@ import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.meta.ItemMeta
 
 /**
- * Resolves MagicSpells magic items through typed imports.
- *
- * Requires Paper `join-classpath: true` on MagicSpells (see paper-plugin.yml) so the
- * API classes load at runtime; [initialize] only gates on MagicSpells being enabled.
+ * Resolves magic items through [SneakyItemsAPI].
  */
 class MagicItemResolver(private val plugin: SneakyBagOfHolding) {
 
     private var available = false
 
     /**
-     * Marks MagicSpells ready when that plugin is present and enabled.
+     * Marks SneakyItems ready when that plugin is present and enabled.
      * @return true if item APIs may be called
      */
     fun initialize(): Boolean {
         available = false
-        val ms = Bukkit.getPluginManager().getPlugin("MagicSpells") ?: run {
-            plugin.logger.warning("MagicSpells not found — item matching and giving disabled.")
+        val items = Bukkit.getPluginManager().getPlugin("SneakyItems") ?: run {
+            plugin.logger.warning("SneakyItems not found — item matching and giving disabled.")
             return false
         }
-        if (!ms.isEnabled) {
-            plugin.logger.info("MagicSpells not enabled yet — will retry when it loads.")
+        if (!items.isEnabled) {
+            plugin.logger.info("SneakyItems not enabled yet — will retry when it loads.")
             return false
         }
         available = true
-        plugin.logger.info("Hooked MagicSpells API for item resolution.")
+        plugin.logger.info("Hooked SneakyItems API for item resolution.")
         return true
     }
 
     fun isAvailable(): Boolean = available
 
     /**
-     * Material, display name, and custom model data from MagicSpells template data only (no lore).
+     * Material, display name, and custom model data from template data only (no lore).
      */
     fun getDisplayAppearance(internalName: String): MagicDisplayAppearance? {
         if (!available) return null
@@ -67,7 +64,7 @@ class MagicItemResolver(private val plugin: SneakyBagOfHolding) {
     }
 
     /**
-     * Applies MagicSpells custom model data to a GUI icon.
+     * Applies custom model data to a GUI icon.
      */
     fun applyCustomModelData(meta: ItemMeta, values: CustomModelDataValues) {
         if (!available) return
@@ -85,13 +82,13 @@ class MagicItemResolver(private val plugin: SneakyBagOfHolding) {
         MiniMessage.miniMessage().serialize(component)
 
     /**
-     * Returns a clone of the MagicSpells item for [internalName], or null if unavailable.
+     * Returns a clone of the registered item for [internalName], or null if unavailable.
      * Does not apply magic-item behaviors (soulbound, expiration, etc.).
      */
     fun createItem(internalName: String, amount: Int = 1): ItemStack? {
         if (!available) return null
         return try {
-            val stack = MagicItems.getItemByInternalName(internalName)?.clone() ?: return null
+            val stack = SneakyItemsAPI.getItemStack(internalName)?.clone() ?: return null
             stack.amount = amount.coerceAtLeast(1)
             stack
         } catch (e: RuntimeException) {
@@ -104,13 +101,13 @@ class MagicItemResolver(private val plugin: SneakyBagOfHolding) {
     }
 
     /**
-     * Creates an item for [player], applying MagicSpells magic-item behaviors (e.g. soulbound).
+     * Creates an item for [player], applying magic-item behaviors (e.g. soulbound).
      */
     fun createItemForPlayer(internalName: String, player: Player, amount: Int): ItemStack? {
         if (!available) return null
         return try {
-            val magicItem = MagicItems.getMagicItemByInternalName(internalName) ?: return null
-            magicItem.createFor(player, amount.coerceAtLeast(1))
+            SneakyItemsAPI.createForPlayer(internalName, player, amount.coerceAtLeast(1))
+                ?: createItem(internalName, amount)
         } catch (e: RuntimeException) {
             plugin.logger.warning("createItemForPlayer failed for $internalName: ${e.message}")
             null
@@ -123,7 +120,7 @@ class MagicItemResolver(private val plugin: SneakyBagOfHolding) {
     fun getDataFromStack(stack: ItemStack): MagicItemData? {
         if (!available) return null
         return try {
-            MagicItems.getMagicItemDataFromItemStack(stack)
+            SneakyItemsAPI.getDataFromStack(stack)
         } catch (_: RuntimeException) {
             null
         } catch (_: LinkageError) {
@@ -134,7 +131,7 @@ class MagicItemResolver(private val plugin: SneakyBagOfHolding) {
     fun getTemplateData(internalName: String): MagicItemData? {
         if (!available) return null
         return try {
-            MagicItems.getMagicItemDataByInternalName(internalName)
+            SneakyItemsAPI.getDataFromString(internalName)
         } catch (_: RuntimeException) {
             null
         } catch (_: LinkageError) {

@@ -6,13 +6,13 @@ import org.bukkit.event.Listener
 import org.bukkit.event.server.PluginEnableEvent
 
 /**
- * Retries MagicSpells API hook when MagicSpells enables after this plugin.
+ * Retries SneakyItems API hook when SneakyItems enables after this plugin.
  */
-class MagicSpellsHookListener(private val plugin: SneakyBagOfHolding) : Listener {
+class SneakyItemsHookListener(private val plugin: SneakyBagOfHolding) : Listener {
 
     @EventHandler
     fun onPluginEnable(event: PluginEnableEvent) {
-        if (!event.plugin.name.equals("MagicSpells", ignoreCase = true)) return
+        if (!event.plugin.name.equals("SneakyItems", ignoreCase = true)) return
         if (plugin.magicItemResolver.isAvailable()) return
         if (plugin.magicItemResolver.initialize()) {
             plugin.itemRegistry.reload()

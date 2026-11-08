@@ -12,9 +12,9 @@ dependencies:
       load: BEFORE
       required: true
       join-classpath: true
-    MagicSpells:
-      load: AFTER
-      required: false
+    SneakyItems:
+      load: BEFORE
+      required: true
       join-classpath: true
 
 # Commands are registered in code via JavaPlugin#registerCommand (Paper plugins).

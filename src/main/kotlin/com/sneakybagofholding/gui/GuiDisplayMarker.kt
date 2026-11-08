@@ -6,35 +6,29 @@ import org.bukkit.persistence.PersistentDataType
 import org.bukkit.plugin.java.JavaPlugin
 
 /**
- * Marks category-browser icons so MagicSpells menu/updater logic can skip them.
+ * Marks category-browser icons so magic-item updaters can skip them.
  *
- * MagicSpells [ItemTagSpell] (e.g. oldItemFixer) re-tags stacks that look like magic items
- * on every [org.bukkit.event.inventory.InventoryOpenEvent], which replaces plugin lore with
- * YAML lore and sets the `magicitem` PDC.
+ * MagicsSpells ItemTagSpell (e.g. oldItemFixer) and SneakyItems updaters re-tag stacks that look like magic items
+ * on inventory open, which replaces plugin lore with YAML lore and sets the `magicitem` PDC.
  */
 object GuiDisplayMarker {
 
     private lateinit var guiDisplayKey: NamespacedKey
-    private var magicSpellsMenuOptionKey: NamespacedKey? = null
-    private var magicSpellsMagicItemKey: NamespacedKey? = null
+    private val magicItemKey = NamespacedKey.fromString("magicspells:magicitem")!!
+    private val menuOptionKey = NamespacedKey.fromString("magicspells:menuoption")!!
 
     fun init(plugin: JavaPlugin) {
         guiDisplayKey = NamespacedKey(plugin, "gui_display")
-        val ms = plugin.server.pluginManager.getPlugin("MagicSpells") ?: return
-        magicSpellsMenuOptionKey = NamespacedKey(ms, "menuoption")
-        magicSpellsMagicItemKey = NamespacedKey(ms, "magicitem")
     }
 
     fun mark(meta: ItemMeta) {
         meta.persistentDataContainer.set(guiDisplayKey, PersistentDataType.BYTE, 1.toByte())
-        magicSpellsMenuOptionKey?.let { key ->
-            meta.persistentDataContainer.set(key, PersistentDataType.STRING, "boh-display")
-        }
+        meta.persistentDataContainer.set(menuOptionKey, PersistentDataType.STRING, "boh-display")
     }
 
-    /** Removes MagicSpells identity tags that trigger in-inventory updates. */
+    /** Removes magic-item identity tags that trigger in-inventory updates. */
     fun stripMagicSpellsIdentity(meta: ItemMeta) {
-        magicSpellsMagicItemKey?.let { meta.persistentDataContainer.remove(it) }
+        meta.persistentDataContainer.remove(magicItemKey)
     }
 
     fun isMarked(meta: ItemMeta): Boolean =

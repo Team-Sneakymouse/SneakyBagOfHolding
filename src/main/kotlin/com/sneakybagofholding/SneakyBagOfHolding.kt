@@ -10,8 +10,8 @@ import com.sneakybagofholding.util.SoulboundTag
 import com.sneakybagofholding.gui.MenuService
 import com.sneakybagofholding.listener.AutoPickupListener
 import com.sneakybagofholding.listener.BlockPlaceAutoRefillListener
-import com.sneakybagofholding.listener.MagicSpellsHookListener
 import com.sneakybagofholding.listener.PlayerDataListener
+import com.sneakybagofholding.listener.SneakyItemsHookListener
 import org.bukkit.Bukkit
 import com.sneakybagofholding.registry.ItemRegistry
 import com.sneakybagofholding.registry.MagicItemResolver
@@ -73,13 +73,13 @@ class SneakyBagOfHolding : JavaPlugin() {
         server.pluginManager.registerEvents(AutoPickupListener(configManager, itemRegistry, bagService), this)
         server.pluginManager.registerEvents(BlockPlaceAutoRefillListener(itemRegistry, bagService), this)
         server.pluginManager.registerEvents(PlayerDataListener(playerDataStore), this)
-        server.pluginManager.registerEvents(MagicSpellsHookListener(this), this)
+        server.pluginManager.registerEvents(SneakyItemsHookListener(this), this)
 
         playerDataStore.startAutoSave()
 
-        // MagicSpells may enable after us; hook now or when PluginEnableEvent fires
+        // SneakyItems may enable after us; hook now or when PluginEnableEvent fires
         if (!magicItemResolver.initialize()) {
-            Bukkit.getScheduler().runTaskLater(this, Runnable { retryMagicSpellsHook() }, 1L)
+            Bukkit.getScheduler().runTaskLater(this, Runnable { retrySneakyItemsHook() }, 1L)
         } else {
             itemRegistry.reload()
         }
@@ -107,7 +107,7 @@ class SneakyBagOfHolding : JavaPlugin() {
         menuService.closeAllMenus()
     }
 
-    private fun retryMagicSpellsHook() {
+    private fun retrySneakyItemsHook() {
         if (magicItemResolver.isAvailable()) return
         if (magicItemResolver.initialize()) {
             itemRegistry.reload()
