@@ -47,14 +47,14 @@ class MagicItemResolver(private val plugin: SneakyBagOfHolding) {
     fun getDisplayAppearance(internalName: String): MagicDisplayAppearance? {
         if (!available) return null
         val data = getTemplateData(internalName) ?: return null
-        val material = data.getAttribute(MagicItemAttribute.TYPE) as? Material ?: return null
+        val material = data.getAttribute<Any?>(MagicItemAttribute.TYPE) as? Material ?: return null
         val displayName = if (data.hasAttribute(MagicItemAttribute.NAME)) {
-            (data.getAttribute(MagicItemAttribute.NAME) as? Component)?.let { componentToConfigString(it) }
+            (data.getAttribute<Any?>(MagicItemAttribute.NAME) as? Component)?.let { componentToConfigString(it) }
         } else {
             null
         }
         val rawCmd = if (data.hasAttribute(MagicItemAttribute.CUSTOM_MODEL_DATA)) {
-            data.getAttribute(MagicItemAttribute.CUSTOM_MODEL_DATA)
+            data.getAttribute<Any?>(MagicItemAttribute.CUSTOM_MODEL_DATA)
         } else {
             null
         }
