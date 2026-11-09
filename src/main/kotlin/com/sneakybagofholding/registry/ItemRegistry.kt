@@ -27,6 +27,9 @@ class ItemRegistry(
         }
     }
 
+    /** True when some configured items had no SneakyItems template at the last [reload]. */
+    fun hasMissingTemplates(): Boolean = templates.size < itemsById.size
+
     fun getItem(id: String): ItemDefinition? = itemsById[id]
 
     fun getAllItems(): Collection<ItemDefinition> = itemsById.values
