@@ -9,6 +9,7 @@ import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.minimessage.MiniMessage
 import org.bukkit.Bukkit
 import org.bukkit.Material
+import org.bukkit.NamespacedKey
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.meta.ItemMeta
@@ -42,7 +43,7 @@ class MagicItemResolver(private val plugin: SneakyBagOfHolding) {
     fun isAvailable(): Boolean = available
 
     /**
-     * Material, display name, and custom model data from template data only (no lore).
+     * Material, display name, item model, and custom model data from template data only (no lore).
      */
     fun getDisplayAppearance(internalName: String): MagicDisplayAppearance? {
         if (!available) return null
@@ -60,7 +61,12 @@ class MagicItemResolver(private val plugin: SneakyBagOfHolding) {
         }
         val customModelDataValues = resolveCustomModelDataValues(rawCmd)
         val legacyCustomModelData = if (customModelDataValues == null && rawCmd is Int) rawCmd else null
-        return MagicDisplayAppearance(material, displayName, customModelDataValues, legacyCustomModelData)
+        val itemModel = if (data.hasAttribute(MagicItemAttribute.ITEM_MODEL)) {
+            data.getAttribute<Any?>(MagicItemAttribute.ITEM_MODEL) as? NamespacedKey
+        } else {
+            null
+        }
+        return MagicDisplayAppearance(material, displayName, customModelDataValues, legacyCustomModelData, itemModel)
     }
 
     /**
