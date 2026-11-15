@@ -34,10 +34,16 @@ data class ItemDisplayDefinition(
     val lore: List<String>,
     /** Fallback material when MagicSpells cannot provide the item stack. */
     val material: String?,
-    /** Fallback custom model data when MagicSpells cannot provide the item stack. */
-    val customModelData: Int?,
-    /** Optional CMD when autopickup is enabled (defaults to MagicSpells item CMD). */
-    val autopickupOnCustomModelData: Int?,
-    /** Optional CMD when autopickup is disabled (defaults to MagicSpells item CMD if unset). */
-    val autopickupOffCustomModelData: Int?
+    /** Fallback `item-model` id (e.g. `lom:legacy/cod/1`) when MagicSpells cannot provide the item stack. */
+    val itemModel: String? = null,
+    /** Optional `item-model` when autopickup is enabled (defaults to MagicSpells item appearance). */
+    val autopickupOnItemModel: String? = null,
+    /** Optional `item-model` when autopickup is disabled (defaults to MagicSpells item appearance if unset). */
+    val autopickupOffItemModel: String? = null,
+    /** Legacy integer `custom-model-data` fallback; [itemModel] wins when both are set. */
+    val customModelData: Int? = null,
+    /** Legacy integer for [autopickupOnItemModel]. */
+    val autopickupOnCustomModelData: Int? = null,
+    /** Legacy integer for [autopickupOffItemModel]. */
+    val autopickupOffCustomModelData: Int? = null,
 )

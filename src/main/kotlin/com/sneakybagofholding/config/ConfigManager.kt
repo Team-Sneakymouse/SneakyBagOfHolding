@@ -1,6 +1,7 @@
 package com.sneakybagofholding.config
 
 import com.sneakybagofholding.SneakyBagOfHolding
+import com.sneakybagofholding.util.ItemModelSupport
 import com.sneakybagofholding.util.ItemStackParser
 import org.bukkit.configuration.file.FileConfiguration
 import org.bukkit.inventory.ItemStack
@@ -234,11 +235,12 @@ class ConfigManager(private val plugin: SneakyBagOfHolding) {
                     name = displaySection.getString("name"),
                     lore = displaySection.getStringList("lore"),
                     material = displaySection.getString("material") ?: displaySection.getString("type"),
-                    customModelData = displaySection.getInt("custom-model-data").takeIf {
-                        displaySection.contains("custom-model-data")
-                    },
-                    autopickupOnCustomModelData = onSection?.getInt("custom-model-data"),
-                    autopickupOffCustomModelData = offSection?.getInt("custom-model-data")
+                    itemModel = ItemModelSupport.readItemModel(displaySection),
+                    autopickupOnItemModel = ItemModelSupport.readItemModel(onSection),
+                    autopickupOffItemModel = ItemModelSupport.readItemModel(offSection),
+                    customModelData = ItemModelSupport.readLegacyCustomModelData(displaySection),
+                    autopickupOnCustomModelData = ItemModelSupport.readLegacyCustomModelData(onSection),
+                    autopickupOffCustomModelData = ItemModelSupport.readLegacyCustomModelData(offSection),
                 )
             } else null
             ItemDefinition(

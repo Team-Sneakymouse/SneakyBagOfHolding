@@ -26,7 +26,7 @@ settings:
     # hub-filler:
     #   open-slot: 0
     #   material: GRAY_STAINED_GLASS_PANE
-    #   custom-model-data: 1
+    #   item-model: "lom:invisible"
 
     # Hub "Deposit All" button — deposits every registered bag item from the player's
     # inventory/hotbar. Slot defaults to 38. Omit material/name/lore to use built-in defaults.
@@ -85,7 +85,7 @@ categories:
     menu-icon:
       material: COD
       name: "<gold>Fish and Bait"
-      custom-model-data: 1
+      item-model: "lom:legacy/cod/1"
   crafting_reagent:
     default-capacity: 50      # optional override
     menu-title: "<gold>Magic Reagents"
@@ -105,12 +105,12 @@ items:
     categories: [fish, crafting_reagent]
     # omits default-capacity → uses global item-capacity (1000)
     display:
-      # material/name/CMD from MagicSpells when available; lore always from settings.default-item-lore
+      # material/name/item model from MagicSpells when available; lore always from settings.default-item-lore
       # Fallback when MagicSpells item is missing:
       material: RABBIT_FOOT
-      custom-model-data: 626
+      item-model: "lom:items/fish/lavaeel1"
       autopickup-off:
-        custom-model-data: 627   # CMD override while autoloot is off (optional autopickup-on: too)
+        item-model: "lom:items/fish/lavaeel2"   # item model override while autoloot is off (optional autopickup-on: too)
   item-banana:
     categories: [crafting_reagent]
   item-ore:
