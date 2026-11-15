@@ -16,7 +16,7 @@ import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.meta.ItemMeta
 
 /**
- * Builds category browser item stacks using MagicSpells appearance (material, name, CMD)
+ * Builds category browser item stacks using magic-item appearance (material, name, item model, CMD)
  * and plugin-controlled lore only.
  */
 class ItemDisplayBuilder(
@@ -82,15 +82,30 @@ class ItemDisplayBuilder(
             }
             if (ItemModelSupport.apply(meta, overrideModel, overrideCmd)) return
         }
-        appearance?.customModelDataValues?.let { values ->
-            magicItemResolver.applyCustomModelData(meta, values)
-            return
-        }
-        appearance?.legacyCustomModelData?.let { legacy ->
-            CustomModelDataSupport.applyLegacyInt(meta, legacy)
-            return
-        }
+        if (appearance != null && applyMagicAppearanceModel(meta, appearance)) return
         display?.let { ItemModelSupport.apply(meta, it.itemModel, it.customModelData) }
+    }
+
+    /**
+     * Copies the magic item's model components: `item_model` and custom model data may coexist
+     * (an item model can select on CMD), so both are applied. Returns true if anything was applied.
+     */
+    private fun applyMagicAppearanceModel(meta: ItemMeta, appearance: MagicDisplayAppearance): Boolean {
+        var applied = false
+        appearance.itemModel?.let {
+            meta.itemModel = it
+            applied = true
+        }
+        val values = appearance.customModelDataValues
+        val legacy = appearance.legacyCustomModelData
+        if (values != null) {
+            magicItemResolver.applyCustomModelData(meta, values)
+            applied = true
+        } else if (legacy != null) {
+            CustomModelDataSupport.applyLegacyInt(meta, legacy)
+            applied = true
+        }
+        return applied
     }
 
     private fun applyAutopickupGlow(meta: ItemMeta, autopickupEnabled: Boolean) {
