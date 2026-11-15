@@ -87,7 +87,9 @@ categories:
       hub-slot: 10                    # optional per-category hub slot
 ```
 
-Decorative slots are non-interactive (no clicks, no deposits). Tooltip is hidden by default (`hide-tooltip: false` to show). Legacy key `slot-50:` still works (implies slot 50). Per-item `display.autopickup-off.custom-model-data` still overrides item icons when off (optional).
+Decorative slots are non-interactive (no clicks, no deposits). Tooltip is hidden by default (`hide-tooltip: false` to show). Legacy key `slot-50:` still works (implies slot 50). Per-item `display.autopickup-off.item-model` still overrides item icons when off (optional).
+
+Icons and decorative items select their look with `item-model: "<namespace:id>"` (the `item_model` component). The integer `custom-model-data` key is deprecated; it is only read as a fallback when `item-model` is absent.
 
 ### Items
 
@@ -98,9 +100,9 @@ items:
     # default-capacity omitted → uses settings.defaults.item-capacity (1000)
     display:
       autopickup-on:
-        custom-model-data: 94
+        item-model: "lom:items/fish/lavaeel1"
       autopickup-off:
-        custom-model-data: 95  # e.g. border when autopickup off
+        item-model: "lom:items/fish/lavaeel2"  # e.g. different icon when autopickup off
 ```
 
 ### Stacked capacity example

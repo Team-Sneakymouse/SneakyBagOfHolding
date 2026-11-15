@@ -7,6 +7,7 @@ import com.sneakybagofholding.registry.MagicDisplayAppearance
 import com.sneakybagofholding.registry.MagicItemResolver
 import com.sneakybagofholding.storage.PlayerDataStore
 import com.sneakybagofholding.util.CustomModelDataSupport
+import com.sneakybagofholding.util.ItemModelSupport
 import com.sneakyutils.util.ItemMetaText
 import com.sneakybagofholding.util.ItemStackParser
 import org.bukkit.Material
@@ -63,8 +64,8 @@ class ItemDisplayBuilder(
     }
 
     /**
-     * Uses MagicSpells CMD by default; [ItemDisplayDefinition.autopickupOffCustomModelData] overrides when autopickup is off.
-     * [ItemDisplayDefinition.autopickupOnCustomModelData] optionally overrides when on.
+     * Uses the MagicSpells appearance by default; [ItemDisplayDefinition.autopickupOffItemModel] overrides when autopickup is off.
+     * [ItemDisplayDefinition.autopickupOnItemModel] optionally overrides when on (legacy integer keys are a fallback).
      */
     private fun applyCustomModelData(
         meta: ItemMeta,
@@ -72,16 +73,14 @@ class ItemDisplayBuilder(
         display: ItemDisplayDefinition?,
         autopickupEnabled: Boolean,
     ) {
-        val overrideCmd = when {
-            !autopickupEnabled && display?.autopickupOffCustomModelData != null ->
-                display.autopickupOffCustomModelData
-            autopickupEnabled && display?.autopickupOnCustomModelData != null ->
+        if (display != null) {
+            val overrideModel = if (autopickupEnabled) display.autopickupOnItemModel else display.autopickupOffItemModel
+            val overrideCmd = if (autopickupEnabled) {
                 display.autopickupOnCustomModelData
-            else -> null
-        }
-        if (overrideCmd != null) {
-            CustomModelDataSupport.applyLegacyInt(meta, overrideCmd)
-            return
+            } else {
+                display.autopickupOffCustomModelData
+            }
+            if (ItemModelSupport.apply(meta, overrideModel, overrideCmd)) return
         }
         appearance?.customModelDataValues?.let { values ->
             magicItemResolver.applyCustomModelData(meta, values)
@@ -91,7 +90,7 @@ class ItemDisplayBuilder(
             CustomModelDataSupport.applyLegacyInt(meta, legacy)
             return
         }
-        display?.customModelData?.let { CustomModelDataSupport.applyLegacyInt(meta, it) }
+        display?.let { ItemModelSupport.apply(meta, it.itemModel, it.customModelData) }
     }
 
     private fun applyAutopickupGlow(meta: ItemMeta, autopickupEnabled: Boolean) {
@@ -134,7 +133,7 @@ class ItemDisplayBuilder(
         val display = item.display
         val material = resolveFallbackMaterial(display)
         val stack = ItemStack(material, 1)
-        display?.customModelData?.let { ItemStackParser.applyCustomModelData(stack, it) }
+        display?.let { ItemStackParser.applyItemModel(stack, it.itemModel, it.customModelData) }
         return stack
     }
 }
